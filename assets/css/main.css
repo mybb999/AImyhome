@@ -1,0 +1,141 @@
+/* === Lucas Space — Main CSS === */
+
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Base Styles === */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-brand-bg text-on-surface font-geist;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0b1326;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(16, 185, 129, 0.3);
+    color: #dae2fd;
+  }
+}
+
+/* === Component Styles === */
+@layer components {
+  /* Card base */
+  .card {
+    @apply rounded-lg border border-brand-border;
+    background-color: #131b2e;
+    padding: 20px;
+  }
+  .card-elevated {
+    @apply rounded-lg border border-brand-border;
+    background-color: #171f33;
+    padding: 20px;
+  }
+  .card-highest {
+    @apply rounded-lg border border-brand-border;
+    background-color: #222a3d;
+    padding: 20px;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-body-md font-medium
+           transition-all duration-200 cursor-pointer select-none;
+  }
+  .btn-primary {
+    @apply btn border border-brand-accent/30 text-brand-accent;
+    background: rgba(78, 222, 163, 0.08);
+  }
+  .btn-primary:hover {
+    background: rgba(78, 222, 163, 0.16);
+  }
+  .btn-ghost {
+    @apply btn text-on-surface-variant border border-transparent;
+  }
+  .btn-ghost:hover {
+    @apply text-on-surface;
+    background: rgba(218, 226, 253, 0.06);
+  }
+
+  /* Chips / Tags */
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-label-md text-on-surface-variant;
+    background-color: #1e293b;
+  }
+  .chip-accent {
+    @apply chip;
+    color: #4edea3;
+    background: rgba(78, 222, 163, 0.1);
+  }
+
+  /* Status dot */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+    background-color: #4edea3;
+  }
+  .status-dot-pulse {
+    @apply status-dot animate-pulse-dot;
+  }
+
+  /* Divider */
+  .divider {
+    @apply w-full h-px;
+    background-color: #334155;
+  }
+
+  /* Page transition */
+  .page-enter-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .page-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .page-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .page-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* === Utility === */
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #4edea3 0%, #7bd0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
