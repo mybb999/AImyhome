@@ -46,8 +46,9 @@ export default defineNuxtConfig({
     },
   },
 
-  // SSR + static generation hybrid
+  // SSR + Vercel deployment
   nitro: {
+    preset: 'vercel',
     prerender: {
       routes: ['/'],
     },
