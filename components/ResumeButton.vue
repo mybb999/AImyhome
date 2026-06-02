@@ -1,6 +1,6 @@
 <template>
   <a
-    href="/刘俊雄-前端开发工程师.pdf"
+    href="/刘俊雄-前端开发工程师2.pdf"
     download
     class="btn-primary w-full"
   >
