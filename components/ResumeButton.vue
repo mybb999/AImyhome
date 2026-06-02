@@ -18,6 +18,6 @@
 withDefaults(defineProps<{
   label?: string
 }>(), {
-  label: '下载简历 PDF2',
+  label: '下载简历 PDF',
 })
 </script>
