@@ -47,8 +47,8 @@
         返回博客
       </NuxtLink>
 
-      <!-- Resume download -->
-      <ResumeButton />
+      <!-- Resume download (disabled) -->
+      <!-- <ResumeButton /> -->
     </div>
   </div>
 </template>

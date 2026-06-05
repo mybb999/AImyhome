@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-6 lg:space-y-8">
     <BlogList :posts="posts" :loading="pending" />
-    <Guestbook />
   </div>
 </template>
 

@@ -40,7 +40,7 @@
         </svg>
         返回首页
       </NuxtLink>
-      <ResumeButton />
+      <!-- <ResumeButton /> -->
     </div>
   </div>
 </template>

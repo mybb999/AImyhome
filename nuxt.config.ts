@@ -11,7 +11,7 @@ export default defineNuxtConfig({
   // App configuration
   app: {
     head: {
-      title: 'Lucas Space — 个人品牌全栈网站',
+      title: 'Lucas Space — 个人全栈网站',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -53,6 +53,15 @@ export default defineNuxtConfig({
     prerender: {
       routes: ['/'],
     },
+  },
+
+  // Component auto-import (disable path prefix to keep original names)
+  components: {
+    dirs: [
+      { path: '~/components/home', prefix: false },
+      { path: '~/components/blog', prefix: false },
+      { path: '~/components/shared', prefix: false },
+    ],
   },
 
   // CSS

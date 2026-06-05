@@ -56,8 +56,8 @@
     <!-- Divider -->
     <div class="divider" />
 
-    <!-- Resume Download -->
-    <ResumeButton />
+    <!-- Resume Download (disabled) -->
+    <!-- <ResumeButton /> -->
 
     <!-- Footer note -->
     <p class="text-label-md text-on-surface-variant/60">
