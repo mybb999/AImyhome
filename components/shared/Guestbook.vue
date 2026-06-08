@@ -9,60 +9,63 @@
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
           <path d="M12 16v-4M12 8h.01"/>
         </svg>
-        GitHub 登录即可留言
+        支持匿名评论 · 无需登录
       </span>
     </div>
 
     <div class="card">
-      <div ref="giscusContainer" />
-    </div>
-
-    <div class="card-elevated flex items-start gap-3">
-      <span class="text-lg mt-0.5">💡</span>
-      <div class="space-y-1 text-body-md text-on-surface-variant">
-        <p>留言由 GitHub Discussions 驱动，无需注册额外账号。</p>
-        <p>点击下方输入框会自动跳转 GitHub 授权，授权后即可发表评论。</p>
-      </div>
+      <ClientOnly>
+        <div id="twikoo-container" />
+        <template #fallback>
+          <div class="flex items-center justify-center py-12 text-on-surface-variant text-body-md">
+            评论加载中...
+          </div>
+        </template>
+      </ClientOnly>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-const giscusContainer = ref<HTMLElement>()
+import { onMounted } from 'vue'
 
-const giscusConfig = {
-  repo: 'mybb999/AImyhome',
-  repoId: 'R_kgDOStfn4w',
-  category: 'General',
-  categoryId: 'DIC_kwDOStfn484C-RGL',
-  mapping: 'pathname',
-  strict: '0',
-  reactionsEnabled: '1',
-  emitMetadata: '0',
-  inputPosition: 'bottom',
-  theme: 'dark',
-  lang: 'zh-CN',
-}
+/**
+ * Twikoo 留言板配置
+ *
+ * 部署步骤：
+ * 1. 去 https://twikoo.js.org/backend.html 点 "Deploy to Vercel"
+ * 2. 在 Vercel 部署时填入 MongoDB Atlas 连接字符串（环境变量 MONGODB_URI）
+ * 3. 部署完成后将你的 Vercel 地址填到下方 envId（替换 YOUR_TWIKOO_BACKEND）
+ *
+ * 示例：
+ *   envId: 'https://twikoo-lucas-space.vercel.app'
+ */
 
-onMounted(() => {
-  const script = document.createElement('script')
-  script.src = 'https://giscus.app/client.js'
-  script.setAttribute('data-repo', giscusConfig.repo)
-  script.setAttribute('data-repo-id', giscusConfig.repoId)
-  script.setAttribute('data-category', giscusConfig.category)
-  script.setAttribute('data-category-id', giscusConfig.categoryId)
-  script.setAttribute('data-mapping', giscusConfig.mapping)
-  script.setAttribute('data-strict', giscusConfig.strict)
-  script.setAttribute('data-reactions-enabled', giscusConfig.reactionsEnabled)
-  script.setAttribute('data-emit-metadata', giscusConfig.emitMetadata)
-  script.setAttribute('data-input-position', giscusConfig.inputPosition)
-  script.setAttribute('data-theme', giscusConfig.theme)
-  script.setAttribute('data-lang', giscusConfig.lang)
-  script.setAttribute('crossorigin', 'anonymous')
-  script.async = true
+const TWIKOO_ENV_ID = 'https://message-board-pi-pearl.vercel.app'
 
-  if (giscusContainer.value) {
-    giscusContainer.value.appendChild(script)
+onMounted(async () => {
+  try {
+    const twikoo = await import('twikoo')
+    twikoo.default({
+      envId: TWIKOO_ENV_ID,
+      el: '#twikoo-container',
+      lang: 'zh-CN',
+      path: window.location.pathname,
+    })
+  } catch (err) {
+    console.error('Twikoo 加载失败:', err)
   }
 })
 </script>
+
+<style scoped>
+/* Twikoo Midnight Slate 暗色适配 */
+:deep(.twikoo) {
+  --twikoo-bg: #131b2e;
+  --twikoo-text: #dae2fd;
+  --twikoo-text-secondary: #bbcabf;
+  --twikoo-border: #334155;
+  --twikoo-accent: #4edea3;
+  --twikoo-card: #171f33;
+}
+</style>
