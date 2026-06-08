@@ -41,13 +41,22 @@ import { onMounted } from 'vue'
  *   envId: 'https://twikoo-lucas-space.vercel.app'
  */
 
-const TWIKOO_ENV_ID = 'https://message-board-pi-pearl.vercel.app'
-
 onMounted(async () => {
   try {
     const twikoo = await import('twikoo')
+
+    // 开发环境：浏览器直连 Vercel（需设备开 VPN）
+    // 生产环境：走 Nuxt 服务端代理（Vercel 内部互通，无需 VPN）
+    const isDev = window.location.hostname === 'localhost'
+      || window.location.hostname.startsWith('192.168.')
+      || window.location.hostname.startsWith('10.')
+      || window.location.hostname.startsWith('172.')
+    const envId = isDev
+      ? 'https://message-board-pi-pearl.vercel.app'
+      : `${window.location.origin}/api/twikoo`
+
     twikoo.default({
-      envId: TWIKOO_ENV_ID,
+      envId,
       el: '#twikoo-container',
       lang: 'zh-CN',
       path: window.location.pathname,
