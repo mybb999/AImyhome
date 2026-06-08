@@ -14,7 +14,9 @@ useHead({
   ],
 })
 
-const { data: posts, pending } = await useFetch<BlogListItem[]>('/api/blog', {
+const { data, pending } = useFetch<BlogListItem[]>('/api/blog', {
   default: () => [],
 })
+
+const posts = computed(() => data.value || [])
 </script>

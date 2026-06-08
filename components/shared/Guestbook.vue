@@ -68,4 +68,40 @@ onMounted(async () => {
   --twikoo-accent: #4edea3;
   --twikoo-card: #171f33;
 }
+
+/* 移动端防溢出 */
+#twikoo-container {
+  max-width: 100%;
+  overflow-x: hidden;
+  word-break: break-word;
+}
+
+:deep(#twikoo-container *) {
+  max-width: 100%;
+}
+
+:deep(.tk-comment),
+:deep(.tk-submit),
+:deep(.tk-actions),
+:deep(.tk-row) {
+  max-width: 100%;
+  word-break: break-word;
+}
+
+:deep(.tk-input),
+:deep(.tk-textarea),
+:deep(textarea),
+:deep(input) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.tk-avatar) {
+  flex-shrink: 0;
+}
+
+:deep(.tk-content) {
+  min-width: 0;
+  flex: 1;
+}
 </style>
