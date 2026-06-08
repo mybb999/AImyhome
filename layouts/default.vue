@@ -25,6 +25,15 @@
           首页
         </NuxtLink>
         <NuxtLink
+          to="/ai-agent"
+          class="px-4 py-2 rounded-lg text-body-md font-medium transition-all duration-200"
+          :class="isAiAgentActive
+            ? 'text-brand-accent bg-brand-accent/10'
+            : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50'"
+        >
+          AI Agent
+        </NuxtLink>
+        <NuxtLink
           to="/blog"
           class="px-4 py-2 rounded-lg text-body-md font-medium transition-all duration-200"
           :class="isBlogActive
@@ -52,7 +61,7 @@
         "
       >
         <!-- Sidebar: switch by route -->
-        <AvatarCard v-if="route.path === '/'" />
+        <AvatarCard v-if="route.path === '/' || route.path.startsWith('/ai-agent')" />
         <BlogSidebar v-else-if="route.path === '/blog'" />
         <BlogToc v-else :toc="blogToc" />
       </aside>
@@ -78,6 +87,7 @@ import type { TocItem } from '~/components/BlogToc.vue'
 const route = useRoute()
 
 const isHomeActive = computed(() => route.path === '/')
+const isAiAgentActive = computed(() => route.path.startsWith('/ai-agent'))
 const isBlogActive = computed(() => route.path.startsWith('/blog'))
 
 // TOC will be injected by blog detail page via a composable or provide/inject

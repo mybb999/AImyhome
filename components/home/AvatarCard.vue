@@ -9,7 +9,7 @@
         <img
           v-if="avatarSrc"
           :src="avatarSrc"
-          alt="刘俊雄"
+          alt="Lucas"
           class="w-full h-full object-cover object-center"
         />
         <span
@@ -26,8 +26,7 @@
 
     <!-- Name & Title -->
     <div class="space-y-1">
-      <h1 class="text-headline-lg text-on-surface">刘俊雄</h1>
-      <p class="text-body-md text-on-surface-variant">Lucas</p>
+      <h1 class="text-headline-lg text-on-surface">Lucas</h1>
       <p class="text-body-md text-secondary">
         高级前端开发工程师 · 7年前端经验
       </p>
@@ -69,5 +68,5 @@
 <script setup lang="ts">
 // 将真实头像图片放入 public/ 目录后，修改此路径即可
 const avatarSrc = ref("/avatar.png"); // 例: 'c.jpg'
-const initials = "刘";
+const initials = "L";
 </script>
