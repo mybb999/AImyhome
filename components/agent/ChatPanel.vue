@@ -201,21 +201,33 @@ async function send() {
       buffer = lines.pop() || ''
 
       for (const line of lines) {
+        // Normalize: handle both "data: {...}" and "data:{...}"
         const trimmed = line.trim()
-        if (!trimmed.startsWith('data: ')) continue
+        if (!trimmed || trimmed.startsWith(':')) continue // Skip empty lines and SSE comments
 
-        const data = trimmed.slice(6)
-        if (data === '[DONE]') break
+        // Extract payload after "data:" prefix (with or without space)
+        let data: string
+        if (trimmed.startsWith('data:')) {
+          data = trimmed.slice(5)  // Remove "data:"
+          if (data.startsWith(' ')) data = data.slice(1) // Remove leading space
+        } else {
+          continue
+        }
+
+        if (data === '[DONE]') {
+          break
+        }
 
         try {
           const parsed = JSON.parse(data)
+          // 智谱 GLM uses OpenAI-compatible format
           const content = parsed.choices?.[0]?.delta?.content
           if (content) {
             assistantMsg.content += content
             scrollToBottom()
           }
         } catch {
-          // Skip unparseable SSE lines
+          // Skip unparseable lines (e.g., keepalive comments)
         }
       }
     }

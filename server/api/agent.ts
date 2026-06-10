@@ -3,6 +3,7 @@
  * Uses SSE streaming for real-time token-by-token output.
  */
 
+import { PassThrough } from 'node:stream'
 import type { AgentRequest } from '~/types/chat'
 
 // ── System prompt ──
@@ -66,29 +67,31 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Manually forward the SSE stream — sendStream doesn't work with web ReadableStream
-  const res = event.node.res
+  // Bridge web ReadableStream → Node.js PassThrough for Nuxt's sendStream
+  const webStream = llmResponse.body!
+  const nodeStream = new PassThrough()
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no',
-    'Transfer-Encoding': 'chunked',
-  })
-
-  const reader = llmResponse.body!.getReader()
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
-        res.end()
-        break
+  const reader = webStream.getReader()
+  const pump = async () => {
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          nodeStream.end()
+          break
+        }
+        nodeStream.write(Buffer.from(value))
       }
-      res.write(value)
+    } catch {
+      nodeStream.destroy()
     }
-  } catch {
-    res.end()
   }
+  pump() // Background — sendStream will wait for nodeStream to end
+
+  setHeader(event, 'Content-Type', 'text/event-stream')
+  setHeader(event, 'Cache-Control', 'no-cache')
+  setHeader(event, 'Connection', 'keep-alive')
+  setHeader(event, 'X-Accel-Buffering', 'no')
+
+  return sendStream(event, nodeStream)
 })
