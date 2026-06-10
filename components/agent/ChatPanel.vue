@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between pb-4 border-b border-brand-border shrink-0">
       <div>
         <h1 class="text-headline-lg text-on-surface flex items-center gap-3">
-          🤖 AI Agent
+          🤖 聊天工具
         </h1>
         <p class="mt-1 text-body-md text-on-surface-variant">
           AI 驱动 · 智能助手

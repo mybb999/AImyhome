@@ -31,7 +31,7 @@
             ? 'text-brand-accent bg-brand-accent/10'
             : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50'"
         >
-          AI Agent
+          聊天工具
         </NuxtLink>
         <NuxtLink
           to="/blog"
