@@ -154,13 +154,13 @@ async function send() {
   input.value = ''
 
   // Create blank assistant message for streaming
-  const assistantMsg: ChatMessage = {
+  messages.value.push({
     id: generateMessageId(),
     role: 'assistant',
     content: '',
     timestamp: Date.now(),
-  }
-  messages.value.push(assistantMsg)
+  })
+  const assistantIndex = messages.value.length - 1
 
   isThinking.value = true
   isStreaming.value = true
@@ -223,7 +223,7 @@ async function send() {
           // 智谱 GLM uses OpenAI-compatible format
           const content = parsed.choices?.[0]?.delta?.content
           if (content) {
-            assistantMsg.content += content
+            messages.value[assistantIndex].content += content
             scrollToBottom()
           }
         } catch {
@@ -233,8 +233,9 @@ async function send() {
     }
   } catch (err: any) {
     // Remove the empty assistant message on error
-    const idx = messages.value.indexOf(assistantMsg)
-    if (idx !== -1) messages.value.splice(idx, 1)
+    if (messages.value[assistantIndex]?.content === '') {
+      messages.value.splice(assistantIndex, 1)
+    }
     errorMessage.value = err.message || '生成失败，请重试'
   } finally {
     isStreaming.value = false
