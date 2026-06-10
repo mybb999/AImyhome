@@ -31,7 +31,7 @@
         高级前端开发工程师 · 7年前端经验
       </p>
       <p class="text-label-md text-on-surface-variant/60">
-        深圳大学 · 计算机科学与技术 本科
+        最高学历 · 计算机科学与技术 本科
       </p>
     </div>
 
