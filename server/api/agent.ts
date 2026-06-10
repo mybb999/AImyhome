@@ -66,11 +66,29 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Forward the SSE stream to the browser
-  setHeader(event, 'Content-Type', 'text/event-stream')
-  setHeader(event, 'Cache-Control', 'no-cache')
-  setHeader(event, 'Connection', 'keep-alive')
-  setHeader(event, 'X-Accel-Buffering', 'no')
+  // Manually forward the SSE stream — sendStream doesn't work with web ReadableStream
+  const res = event.node.res
 
-  return sendStream(event, llmResponse.body!)
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+    'Transfer-Encoding': 'chunked',
+  })
+
+  const reader = llmResponse.body!.getReader()
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        res.end()
+        break
+      }
+      res.write(value)
+    }
+  } catch {
+    res.end()
+  }
 })
