@@ -21,7 +21,7 @@ export default defineNuxtConfig({
         { property: 'og:type', content: 'website' },
       ],
       script: [
-        { src: 'http://120.25.122.243/sdk.js', 'data-app-key': '13b90995036451356245c5ae', 'data-endpoint': 'http://120.25.122.243/api/collect', defer: true },
+        { src: 'http://120.25.122.243/sdk.js', 'data-app-key': '13b90995036451356245c5ae', 'data-endpoint': 'http://120.25.122.243/api/collect' },
       ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=20260601' },
