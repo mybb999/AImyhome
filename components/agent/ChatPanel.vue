@@ -29,10 +29,10 @@
       <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-center px-4">
         <div class="text-6xl mb-4">👋</div>
         <p class="text-body-lg text-on-surface font-medium">
-          你好！我是 Lucas 的 AI 助手
+          你好！我是 熊仔 的 AI 助手
         </p>
         <p class="mt-2 text-body-md text-on-surface-variant max-w-md">
-          由智谱 GLM-4-Flash 驱动。我可以聊前端开发、Vue 3、TypeScript、可视化等技术话题，有什么想了解的？
+          由智谱 GLM-4.7-Flash 驱动。我可以聊前端开发、Vue 3、TypeScript、可视化等技术话题，有什么想了解的？
         </p>
       </div>
 

@@ -128,14 +128,14 @@ Giscus <── GitHub Discussions API (免数据库留言)
 └────────────────────────────────────────────────────────┘
           │
           ▼
-  智谱 GLM API (glm-4-flash)
+  智谱 GLM API (glm-4.7-flash)
 ```
 
 ### Agent 关键设计决策
 
 | 决策 | 选择 | 理由 |
 |------|------|------|
-| LLM 模型 | 智谱 GLM-4-Flash | 永久免费，中文能力强，OpenAI 兼容格式 |
+| LLM 模型 | 智谱 GLM-4.7-Flash | 最新免费模型（2026-01 发布），200K 上下文，OpenAI 兼容格式 |
 | 对话持久化 | 无（浏览器内存） | v1.0 最小可用，后续可加 localStorage/SQLite |
 | 流式渲染 | SSE (Server-Sent Events) | Nuxt/Nitro 原生支持 ReadableStream |
 | API Key 安全 | 仅服务端 | `.env` 存储，前端不可见 |

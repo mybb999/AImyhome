@@ -6,8 +6,19 @@
 import { PassThrough } from 'node:stream'
 import type { AgentRequest } from '~/types/chat'
 
+// 智谱 error body: {"error":{"code":"1305","message":"..."}}
+function extractLlmErrorMessage(text: string): string {
+  try {
+    const message = JSON.parse(text)?.error?.message
+    if (message) return message
+  } catch {
+    // keep raw text
+  }
+  return `LLM API error: ${text.slice(0, 200)}`
+}
+
 // ── System prompt ──
-const SYSTEM_PROMPT = `你是 Lucas Space 的 AI 助手，由智谱 GLM 驱动。你的特点：
+const SYSTEM_PROMPT = `你是 熊仔 的 AI 助手，由智谱 GLM 驱动。你的特点：
 - 擅长前端开发、Vue 3、TypeScript、可视化等技术话题
 - 回答风格：专业但不枯燥，像一位有 7 年经验的前端架构师
 - 代码示例优先使用 TypeScript/Vue 3，带简要注释
@@ -31,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
   // Build the LLM API URL
   const baseUrl = (process.env.LLM_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4').replace(/\/$/, '')
-  const model = process.env.LLM_MODEL || 'glm-4-flash'
+  const model = process.env.LLM_MODEL || 'glm-4.7-flash'
   const apiKey = process.env.LLM_API_KEY
 
   if (!apiKey) {
@@ -39,32 +50,52 @@ export default defineEventHandler(async (event) => {
   }
 
   // Call 智谱 GLM API with streaming
+  // thinking disabled → instant answers, no reasoning_content chunks (GLM-4.7-Flash thinks by default)
+  const requestOptions: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: fullMessages,
+      stream: true,
+      temperature: 0.7,
+      max_tokens: 4096,
+      thinking: { type: 'disabled' },
+    }),
+  }
+
   let llmResponse: Response
   try {
-    llmResponse = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: fullMessages,
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
-    })
+    llmResponse = await fetch(`${baseUrl}/chat/completions`, requestOptions)
   } catch (err) {
     throw createError({ statusCode: 502, statusMessage: 'AI service unavailable' })
   }
 
+  let errorText = ''
   if (!llmResponse.ok) {
-    const errorText = await llmResponse.text().catch(() => 'Unknown error')
-    throw createError({
-      statusCode: 502,
-      statusMessage: `LLM API error: ${errorText.slice(0, 200)}`,
-    })
+    errorText = await llmResponse.text().catch(() => 'Unknown error')
+    // Free tier occasionally returns 1305 (访问量过大) — retry once
+    const retriable = llmResponse.status === 429 || llmResponse.status >= 500 || errorText.includes('1305')
+    if (retriable) {
+      await new Promise(resolve => setTimeout(resolve, 1200))
+      try {
+        llmResponse = await fetch(`${baseUrl}/chat/completions`, requestOptions)
+      } catch {
+        throw createError({ statusCode: 502, statusMessage: 'AI service unavailable' })
+      }
+      if (!llmResponse.ok) {
+        errorText = await llmResponse.text().catch(() => 'Unknown error')
+      }
+    }
+    if (!llmResponse.ok) {
+      throw createError({
+        statusCode: 502,
+        statusMessage: extractLlmErrorMessage(errorText),
+      })
+    }
   }
 
   // Bridge web ReadableStream → Node.js PassThrough for Nuxt's sendStream
