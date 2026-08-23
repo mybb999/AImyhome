@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TocItem } from "~/components/BlogToc.vue";
+import type { TocItem } from "~/components/blog/BlogToc.vue";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
