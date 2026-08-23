@@ -24,7 +24,7 @@
           你好！我是 熊仔 的 AI 助手
         </p>
         <p class="mt-2 text-body-md text-on-surface-variant max-w-md">
-          由智谱 GLM-4.7-Flash 驱动。我可以聊 Node 全栈、前端开发、Vue 3、TypeScript、可视化等技术话题，有什么想了解的？
+          由智谱 GLM-4.7-Flash 驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
         </p>
       </div>
 
