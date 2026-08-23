@@ -1,5 +1,11 @@
 <template>
-  <ChatPanel />
+  <AppShell>
+    <template #sidebar>
+      <AvatarCard />
+    </template>
+
+    <ChatPanel />
+  </AppShell>
 </template>
 
 <script setup lang="ts">
