@@ -17,6 +17,6 @@
 withDefaults(defineProps<{
   label?: string
 }>(), {
-  label: '求职中：前端开发工程师 | 深圳',
+  label: '求职中：全栈开发工程师 | 深圳',
 })
 </script>

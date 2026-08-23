@@ -28,7 +28,7 @@
     <div class="space-y-1">
       <h1 class="text-headline-lg text-on-surface">Lucas</h1>
       <p class="text-body-md text-secondary">
-        高级前端开发工程师 · 7年前端经验
+        高级全栈开发工程师 · 7年全栈开发经验
       </p>
       <p class="text-label-md text-on-surface-variant/60">
         最高学历 · 计算机科学与技术 本科
