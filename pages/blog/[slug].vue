@@ -1,6 +1,11 @@
 <template>
-  asdasd
-  <BlogContent :data="data" :pending="pending" :reading-time="readingTime" />
+  <AppShell>
+    <template #sidebar>
+      <BlogToc :toc="toc" />
+    </template>
+
+    <BlogContent :data="data" :pending="pending" :reading-time="readingTime" />
+  </AppShell>
 </template>
 
 <script setup lang="ts">
@@ -21,7 +26,6 @@ const { data, pending } = await useAsyncData(`blog-${slug.value}`, async () => {
   }
 });
 
-// Compute TOC from content
 const toc = computed<TocItem[]>(() => {
   if (!data.value?.body?.toc?.links) return [];
   return data.value.body.toc.links.map((link: any) => ({
@@ -30,10 +34,6 @@ const toc = computed<TocItem[]>(() => {
     depth: link.depth,
   }));
 });
-
-// Inject TOC into layout
-const setBlogToc = inject<(toc: TocItem[]) => void>("setBlogToc", () => {});
-watch(toc, (val) => setBlogToc(val), { immediate: true });
 
 const readingTime = computed(() => {
   if (!data.value) return 0;
