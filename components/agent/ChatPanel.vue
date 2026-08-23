@@ -10,21 +10,13 @@
           AI 驱动 · 智能助手
         </p>
       </div>
-      <button
-        v-if="messages.length > 0"
-        class="btn-ghost text-body-sm"
-        :disabled="isStreaming"
-        @click="clearChat"
-      >
+      <button v-if="messages.length > 0" class="btn-ghost text-body-sm" :disabled="isStreaming" @click="clearChat">
         清空对话
       </button>
     </div>
 
     <!-- ── Message list ── -->
-    <div
-      ref="messagesContainer"
-      class="flex-1 overflow-y-auto py-4 space-y-4 scroll-smooth"
-    >
+    <div ref="messagesContainer" class="flex-1 overflow-y-auto py-4 space-y-4 scroll-smooth">
       <!-- Empty state: welcome -->
       <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-center px-4">
         <div class="text-6xl mb-4">👋</div>
@@ -32,16 +24,12 @@
           你好！我是 熊仔 的 AI 助手
         </p>
         <p class="mt-2 text-body-md text-on-surface-variant max-w-md">
-          由智谱 GLM-4.7-Flash 驱动。我可以聊前端开发、Vue 3、TypeScript、可视化等技术话题，有什么想了解的？
+          由智谱 GLM-4.7-Flash 驱动。我可以聊 Node 全栈、前端开发、Vue 3、TypeScript、可视化等技术话题，有什么想了解的？
         </p>
       </div>
 
       <!-- Messages -->
-      <ChatMessage
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-      />
+      <ChatMessage v-for="msg in messages" :key="msg.id" :message="msg" />
 
       <!-- Thinking indicator -->
       <div v-if="isThinking && !isStreaming" class="flex gap-3">
@@ -57,57 +45,43 @@
       </div>
 
       <!-- Error banner -->
-      <div v-if="errorMessage" class="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 text-red-400 text-body-md">
+      <div v-if="errorMessage"
+        class="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 text-red-400 text-body-md">
         <span>⚠️</span>
         <span>{{ errorMessage }}</span>
-        <button class="ml-auto text-on-surface-variant hover:text-on-surface transition-colors" @click="errorMessage = ''">
+        <button class="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
+          @click="errorMessage = ''">
           ✕
         </button>
       </div>
     </div>
 
     <!-- ── Scroll to bottom button ── -->
-    <button
-      v-if="showScrollButton"
-      class="absolute bottom-24 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full
+    <button v-if="showScrollButton" class="absolute bottom-24 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full
              bg-surface-high border border-brand-border
              flex items-center justify-center text-on-surface-variant
              hover:text-on-surface hover:bg-surface-highest transition-all
-             animate-fade-in z-10"
-      style="box-shadow: 0 2px 8px rgba(0,0,0,0.3)"
-      @click="scrollToBottom()"
-    >
+             animate-fade-in z-10" style="box-shadow: 0 2px 8px rgba(0,0,0,0.3)" @click="scrollToBottom()">
       ↓
     </button>
 
     <!-- ── Input area ── -->
     <div class="pt-3 border-t border-brand-border shrink-0">
       <div class="flex gap-2">
-        <textarea
-          ref="inputEl"
-          v-model="input"
-          class="flex-1 resize-none rounded-lg px-4 py-2.5 text-body-md
+        <textarea ref="inputEl" v-model="input" class="flex-1 resize-none rounded-lg px-4 py-2.5 text-body-md
                  bg-brand-bg border border-brand-border
                  text-on-surface placeholder-on-surface-variant
                  focus:outline-none focus:border-brand-accent/50 focus:ring-1 focus:ring-brand-accent/20
                  transition-colors duration-150
-                 disabled:opacity-50 disabled:cursor-not-allowed"
-          rows="1"
-          placeholder="输入你的问题...（Enter 发送，Shift+Enter 换行）"
-          :disabled="isStreaming"
-          @keydown="handleKeydown"
-          @input="autoResize"
-        />
-        <button
-          class="shrink-0 px-5 py-2.5 rounded-lg font-semibold
+                 disabled:opacity-50 disabled:cursor-not-allowed" rows="1"
+          placeholder="输入你的问题...（Enter 发送，Shift+Enter 换行）" :disabled="isStreaming" @keydown="handleKeydown"
+          @input="autoResize" />
+        <button class="shrink-0 px-5 py-2.5 rounded-lg font-semibold
                  bg-brand-accent text-on-primary
                  hover:bg-brand-accent-strong
                  disabled:opacity-40 disabled:cursor-not-allowed
                  transition-all duration-200
-                 flex items-center gap-2"
-          :disabled="isStreaming || !input.trim()"
-          @click="send"
-        >
+                 flex items-center gap-2" :disabled="isStreaming || !input.trim()" @click="send">
           <template v-if="isStreaming">
             <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
             <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style="animation-delay: 0.15s" />
