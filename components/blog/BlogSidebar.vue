@@ -48,7 +48,7 @@
 <script setup lang="ts">
 import type { BlogListItem } from '~/types/blog'
 
-const { data: posts } = await useFetch<BlogListItem[]>('/api/blog', {
+const { data: posts } = useFetch<BlogListItem[]>('/api/blog', {
   default: () => [],
 })
 
