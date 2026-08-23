@@ -24,7 +24,7 @@
 4. 遇到不确定的设计细节，优先从 `docs/DESIGN.md` 查找，找不到再问用户
 
 ### 代码规范
-- 所有 Vue 组件使用 `<script setup lang="ts">` + Composition API
+- 所有含逻辑的 Vue 组件使用 `<script setup lang="ts">` + Composition API；纯展示组件（仅模板）可省略 script 块
 - 类型定义统一放在 `types/` 目录
 - API 接口放在 `server/api/` 目录
 - 博客文章 Markdown 放在 `content/blog/` 目录
