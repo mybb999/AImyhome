@@ -90,7 +90,7 @@ Markdown 文件 ──→ server/api/blog.ts ──→ BlogList (首页列表)
 
 Giscus <── GitHub Discussions API (免数据库留言)
 
-浏览器 (ChatPanel.vue) ──→ server/api/agent.ts ──→ 智谱 GLM API
+浏览器 (ChatPanel.vue) ──→ server/api/agent.post.ts ──→ 智谱 GLM API
         ▲                                              │
         └────────── SSE 流式响应 ──────────────────────┘
 ```
@@ -120,7 +120,7 @@ Giscus <── GitHub Discussions API (免数据库留言)
           │
 ┌─────────┼──────────────────────────────────────────────┐
 │  Nitro Server                                          │
-│  server/api/agent.ts                                   │
+│  server/api/agent.post.ts                             │
 │  1. 接收 messages[]                                    │
 │  2. 拼接 system prompt（定义 AI 助手角色）             │
 │  3. POST → 智谱 GLM API，stream: true                  │
