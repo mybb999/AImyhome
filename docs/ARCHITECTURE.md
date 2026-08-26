@@ -55,7 +55,7 @@ AImyhome/
 ├── server/
 │   └── api/
 │       ├── blog.ts            # 博客列表/详情 API
-│       └── agent.ts           # AI Agent API（LLM 转发代理，流式 SSE）
+│       └── agent.post.ts     # AI Agent API（LLM 转发代理，流式 SSE）
 │
 ├── content/
 │   └── blog/                  # Markdown 博客文章
@@ -120,7 +120,7 @@ Giscus <── GitHub Discussions API (免数据库留言)
           │
 ┌─────────┼──────────────────────────────────────────────┐
 │  Nitro Server                                          │
-│  server/api/agent.post.ts                             │
+│  server/api/agent.post.ts                              │
 │  1. 接收 messages[]                                    │
 │  2. 拼接 system prompt（定义 AI 助手角色）             │
 │  3. POST → 智谱 GLM API，stream: true                  │
