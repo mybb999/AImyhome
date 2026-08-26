@@ -10,9 +10,42 @@
           AI 驱动 · 智能助手
         </p>
       </div>
-      <button v-if="messages.length > 0" class="btn-ghost text-body-sm" :disabled="isStreaming" @click="clearChat">
-        清空对话
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- Model selector -->
+        <div v-if="models.length > 1" class="relative">
+          <button
+            class="chip cursor-pointer hover:bg-surface-high/50 transition-colors"
+            :disabled="isStreaming"
+            :title="isStreaming ? '回复生成中，暂不可切换' : '切换模型'"
+            @click="showModelMenu = !showModelMenu"
+          >
+            <span class="status-dot" />
+            <span>{{ currentModelName }}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <div v-if="showModelMenu" class="fixed inset-0 z-10" @click="showModelMenu = false" />
+          <div v-if="showModelMenu" class="absolute right-0 top-full mt-2 w-64 card p-2 z-20 space-y-1">
+            <button
+              v-for="m in models"
+              :key="m.id"
+              class="w-full text-left px-3 py-2 rounded-lg text-body-md transition-colors"
+              :class="selectedModel === m.id
+                ? 'text-brand-accent bg-brand-accent/10'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50'"
+              @click="selectModel(m.id)"
+            >
+              <div class="font-medium">{{ m.name }}</div>
+              <div class="text-label-sm text-on-surface-variant/60">{{ m.description }}</div>
+            </button>
+          </div>
+        </div>
+
+        <button v-if="messages.length > 0" class="btn-ghost text-body-sm" :disabled="isStreaming" @click="clearChat">
+          清空对话
+        </button>
+      </div>
     </div>
 
     <!-- ── Message list ── -->
@@ -24,7 +57,7 @@
           你好！我是 熊仔 的 AI 助手
         </p>
         <p class="mt-2 text-body-md text-on-surface-variant max-w-md">
-          由智谱 GLM-4.7-Flash 驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
+          由智谱 GLM-4.7-Flash / 豆包 Seed-2.0-Lite 双模型驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
         </p>
       </div>
 
@@ -49,6 +82,7 @@
         class="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 text-red-400 text-body-md">
         <span>⚠️</span>
         <span>{{ errorMessage }}</span>
+        <span v-if="models.length > 1" class="text-label-sm text-on-surface-variant/60">可尝试切换模型重试</span>
         <button class="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
           @click="errorMessage = ''">
           ✕
@@ -97,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ChatMessage } from '~/types/chat'
+import type { ChatMessage, LLMModelInfo } from '~/types/chat'
 import { generateMessageId } from '~/types/chat'
 
 // ── State ──
@@ -109,6 +143,13 @@ const errorMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLTextAreaElement | null>(null)
 const showScrollButton = ref(false)
+const models = ref<LLMModelInfo[]>([])
+const selectedModel = ref('')
+const showModelMenu = ref(false)
+
+const currentModelName = computed(() =>
+  models.value.find(m => m.id === selectedModel.value)?.name || 'AI 助手'
+)
 
 // ── Send message ──
 async function send() {
@@ -151,7 +192,7 @@ async function send() {
     const response = await fetch('/api/agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: requestMessages }),
+      body: JSON.stringify({ messages: requestMessages, model: selectedModel.value || undefined }),
     })
 
     if (!response.ok) {
@@ -265,11 +306,33 @@ function clearChat() {
   }
 }
 
+// ── Model selection ──
+function selectModel(id: string) {
+  selectedModel.value = id
+  showModelMenu.value = false
+  localStorage.setItem('agent-model', id)
+}
+
 // ── Lifecycle ──
-onMounted(() => {
+onMounted(async () => {
   const el = messagesContainer.value
   if (el) {
     el.addEventListener('scroll', checkScrollPosition, { passive: true })
+  }
+
+  // Load available models (selector hidden when list has <2 entries)
+  try {
+    const res = await fetch('/api/agent/models')
+    if (res.ok) {
+      const data = await res.json()
+      models.value = data.models || []
+      const saved = localStorage.getItem('agent-model')
+      selectedModel.value = models.value.some(m => m.id === saved)
+        ? saved!
+        : (models.value[0]?.id || '')
+    }
+  } catch {
+    // keep selector hidden — chat still works with server default
   }
 })
 
