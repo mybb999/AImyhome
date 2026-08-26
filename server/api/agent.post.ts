@@ -1,12 +1,13 @@
 /**
- * AI Agent API endpoint — proxies chat requests to 智谱 GLM API.
+ * AI Agent API endpoint — proxies chat requests to the selected LLM provider.
  * Uses SSE streaming for real-time token-by-token output.
  */
 
 import { PassThrough } from 'node:stream'
 import type { AgentRequest } from '~/types/chat'
+import { resolveProvider, buildSystemPrompt } from '~/server/utils/llm'
 
-// 智谱 error body: {"error":{"code":"1305","message":"..."}}
+// Provider error body: {"error":{"code":"...","message":"..."}}
 function extractLlmErrorMessage(text: string): string {
   try {
     const message = JSON.parse(text)?.error?.message
@@ -16,13 +17,6 @@ function extractLlmErrorMessage(text: string): string {
   }
   return `LLM API error: ${text.slice(0, 200)}`
 }
-
-// ── System prompt ──
-const SYSTEM_PROMPT = `你是 刘俊雄 的 AI 助手，由智谱 GLM 驱动。你的特点：
-- 擅长Node全栈、前端开发、Vue 2、Vue 3、React、TypeScript、可视化等技术话题，包含所有前端技术栈以及Node相关的框架，例如Next和Nest后端技术栈
-- 回答风格：专业但不枯燥，像一位有 7 年经验的前端架构师
-- 代码示例优先使用 TypeScript/Vue 3，带简要注释
-- 不知道就说不知道，不编造`
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<AgentRequest>(event)
@@ -34,23 +28,20 @@ export default defineEventHandler(async (event) => {
 
   const { messages } = body
 
-  // Prepend system prompt
+  // Route to the selected provider (whitelist-checked)
+  const provider = resolveProvider(body.model)
+  const apiKey = provider.apiKey!
+
+  // Prepend system prompt (named after the selected provider)
   const fullMessages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: buildSystemPrompt(provider.name) },
     ...messages,
   ]
 
-  // Build the LLM API URL
-  const baseUrl = (process.env.LLM_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4').replace(/\/$/, '')
-  const model = process.env.LLM_MODEL || 'glm-4.7-flash'
-  const apiKey = process.env.LLM_API_KEY
+  const baseUrl = provider.baseURL.replace(/\/$/, '')
 
-  if (!apiKey) {
-    throw createError({ statusCode: 500, statusMessage: 'LLM API key not configured' })
-  }
-
-  // Call 智谱 GLM API with streaming
-  // thinking disabled → instant answers, no reasoning_content chunks (GLM-4.7-Flash thinks by default)
+  // Call provider API with streaming
+  // thinking disabled → instant answers, no reasoning_content chunks
   const requestOptions: RequestInit = {
     method: 'POST',
     headers: {
@@ -58,7 +49,7 @@ export default defineEventHandler(async (event) => {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: provider.model,
       messages: fullMessages,
       stream: true,
       temperature: 0.7,
@@ -77,7 +68,7 @@ export default defineEventHandler(async (event) => {
   let errorText = ''
   if (!llmResponse.ok) {
     errorText = await llmResponse.text().catch(() => 'Unknown error')
-    // Free tier occasionally returns 1305 (访问量过大) — retry once
+    // Free tier occasionally returns rate-limit/overload errors — retry once
     const retriable = llmResponse.status === 429 || llmResponse.status >= 500 || errorText.includes('1305')
     if (retriable) {
       await new Promise(resolve => setTimeout(resolve, 1200))
