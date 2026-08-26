@@ -18,4 +18,13 @@ export interface AgentRequest {
     role: 'user' | 'assistant'
     content: string
   }>
+  /** Optional model id; server falls back to the first available provider */
+  model?: string
+}
+
+/** Available LLM model option exposed to the frontend */
+export interface LLMModelInfo {
+  id: string
+  name: string
+  description: string
 }
