@@ -1,22 +1,11 @@
 /**
- * AI Agent API endpoint — proxies chat requests to the selected LLM provider.
- * Uses SSE streaming for real-time token-by-token output.
+ * AI Agent API endpoint — 转发到 Python Agent 服务(AImyhome-agent)。
+ * Agent 服务负责 RAG 检索 + LangGraph 编排 + 流式输出,博客只做薄壳透传。
+ * SSE 契约保持 OpenAI 格式,前端解析零改动。
  */
 
 import { PassThrough } from 'node:stream'
 import type { AgentRequest } from '~/types/chat'
-import { resolveProvider, buildSystemPrompt } from '~/server/utils/llm'
-
-// Provider error body: {"error":{"code":"...","message":"..."}}
-function extractLlmErrorMessage(text: string): string {
-  try {
-    const message = JSON.parse(text)?.error?.message
-    if (message) return message
-  } catch {
-    // keep raw text
-  }
-  return `LLM API error: ${text.slice(0, 200)}`
-}
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<AgentRequest>(event)
@@ -26,71 +15,27 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'messages is required' })
   }
 
-  const { messages } = body
+  // Agent 服务地址:本地开发默认 127.0.0.1:8000,生产在 Vercel 配环境变量
+  const agentBase = (process.env.AGENT_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')
 
-  // Route to the selected provider (whitelist-checked)
-  const provider = resolveProvider(body.model)
-  const apiKey = provider.apiKey!
-
-  // Prepend system prompt (named after the selected provider)
-  const fullMessages = [
-    { role: 'system', content: buildSystemPrompt(provider.name) },
-    ...messages,
-  ]
-
-  const baseUrl = provider.baseURL.replace(/\/$/, '')
-
-  // Call provider API with streaming
-  // thinking disabled → instant answers, no reasoning_content chunks
-  const requestOptions: RequestInit = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      messages: fullMessages,
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 4096,
-      thinking: { type: 'disabled' },
-    }),
-  }
-
-  let llmResponse: Response
+  let res: Response
   try {
-    llmResponse = await fetch(`${baseUrl}/chat/completions`, requestOptions)
-  } catch (err) {
-    throw createError({ statusCode: 502, statusMessage: 'AI service unavailable' })
+    res = await fetch(`${agentBase}/api/agent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    throw createError({ statusCode: 502, statusMessage: 'Agent service unavailable' })
   }
 
-  let errorText = ''
-  if (!llmResponse.ok) {
-    errorText = await llmResponse.text().catch(() => 'Unknown error')
-    // Free tier occasionally returns rate-limit/overload errors — retry once
-    const retriable = llmResponse.status === 429 || llmResponse.status >= 500 || errorText.includes('1305')
-    if (retriable) {
-      await new Promise(resolve => setTimeout(resolve, 1200))
-      try {
-        llmResponse = await fetch(`${baseUrl}/chat/completions`, requestOptions)
-      } catch {
-        throw createError({ statusCode: 502, statusMessage: 'AI service unavailable' })
-      }
-      if (!llmResponse.ok) {
-        errorText = await llmResponse.text().catch(() => 'Unknown error')
-      }
-    }
-    if (!llmResponse.ok) {
-      throw createError({
-        statusCode: 502,
-        statusMessage: extractLlmErrorMessage(errorText),
-      })
-    }
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'Unknown error')
+    throw createError({ statusCode: 502, statusMessage: `Agent error: ${text.slice(0, 200)}` })
   }
 
-  // Bridge web ReadableStream → Node.js PassThrough for Nuxt's sendStream
-  const webStream = llmResponse.body!
+  // Bridge web ReadableStream → Node.js PassThrough(和原实现一致)
+  const webStream = res.body!
   const nodeStream = new PassThrough()
 
   const reader = webStream.getReader()
