@@ -56,6 +56,11 @@ export default defineNuxtConfig({
     prerender: {
       routes: ['/'],
     },
+    // /api/agent 是 LLM 流式接口:回答要 15~30s,Vercel 免费版默认 10s 会掐死函数,提到上限 60s
+    // (这个版本 nitro 只认 vercel.functions,不认 routeRules.maxDuration —— 已查过 nitro 源码)
+    vercel: {
+      functions: { maxDuration: 60 },
+    },
   },
 
   // Component auto-import (disable path prefix to keep original names)
