@@ -42,6 +42,21 @@
         v-html="renderedMarkdown"
       />
 
+      <!-- Sources(RAG 命中来源,仅 assistant 消息)
+           注意不显示 score:混合检索后它是 RRF 排序分,不是置信度,
+           显示「相关度 2%」会误导访客,只展示文件名 + 章节 -->
+      <div v-if="!isUser && message.sources?.length"
+        class="mt-2 pt-2 border-t border-brand-border space-y-1">
+        <p class="text-label-sm text-on-surface-variant/60">📎 参考资料</p>
+        <div
+          v-for="(s, i) in message.sources"
+          :key="i"
+          class="text-label-sm text-on-surface-variant/80 bg-surface-low px-2 py-1 rounded"
+        >
+          <span class="text-brand-accent">{{ s.source }} · {{ s.section }}</span>
+        </div>
+      </div>
+
       <!-- Timestamp -->
       <p class="text-label-sm text-on-surface-variant/60 mt-1 select-none">
         {{ formattedTime }}

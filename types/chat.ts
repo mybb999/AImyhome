@@ -5,6 +5,16 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  /** 回答引用的资料来源(RAG 命中,仅 assistant 消息) */
+  sources?: SourceItem[]
+}
+
+/** RAG 命中来源,由 Agent 服务经 SSE sources 事件下发 */
+export interface SourceItem {
+  content: string
+  section: string
+  source: string
+  score: number
 }
 
 /** Generate unique message ID */

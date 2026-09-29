@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ChatMessage, LLMModelInfo } from '~/types/chat'
+import type { ChatMessage, LLMModelInfo, SourceItem } from '~/types/chat'
 import { generateMessageId } from '~/types/chat'
 
 // ── State ──
@@ -206,6 +206,7 @@ async function send() {
     const reader = response.body!.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    let currentEvent = ''   // 记录当前 SSE 事件类型:决定后面 data: 行怎么解读
 
     while (true) {
       const { done, value } = await reader.read()
@@ -219,6 +220,12 @@ async function send() {
         // Normalize: handle both "data: {...}" and "data:{...}"
         const trimmed = line.trim()
         if (!trimmed || trimmed.startsWith(':')) continue // Skip empty lines and SSE comments
+
+        // 记录 event: 行,决定后面 data: 行怎么解读
+        if (trimmed.startsWith('event:')) {
+          currentEvent = trimmed.slice(6).trim()
+          continue
+        }
 
         // Extract payload after "data:" prefix (with or without space)
         let data: string
@@ -235,15 +242,21 @@ async function send() {
 
         try {
           const parsed = JSON.parse(data)
-          // 智谱 GLM uses OpenAI-compatible format
-          const content = parsed.choices?.[0]?.delta?.content
-          if (content) {
-            messages.value[assistantIndex].content += content
-            scrollToBottom()
+          if (currentEvent === 'sources') {
+            // 来源事件 → 挂到当前 assistant 消息,不追加正文
+            messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
+          } else {
+            // 智谱 GLM uses OpenAI-compatible format
+            const content = parsed.choices?.[0]?.delta?.content
+            if (content) {
+              messages.value[assistantIndex].content += content
+              scrollToBottom()
+            }
           }
         } catch {
           // Skip unparseable lines (e.g., keepalive comments)
         }
+        currentEvent = ''   // 事件块结束,重置
       }
     }
   } catch (err: any) {
