@@ -161,7 +161,6 @@ async function send() {
 
   errorMessage.value = ''
 
-  // Add user message
   const userMsg: ChatMessage = {
     id: generateMessageId(),
     role: 'user',
@@ -171,7 +170,7 @@ async function send() {
   messages.value.push(userMsg)
   input.value = ''
 
-  // Create blank assistant message for streaming
+  // 空 assistant 占位消息:流式内容往里填
   messages.value.push({
     id: generateMessageId(),
     role: 'assistant',
@@ -186,7 +185,7 @@ async function send() {
   await nextTick()
   scrollToBottom()
 
-  // Build request messages (don't include the empty streaming placeholder)
+  // 请求体带完整历史,但要排除那条空的占位消息
   const requestMessages = messages.value
     .filter(m => m.content !== '')
     .map(m => ({ role: m.role, content: m.content }))
@@ -205,7 +204,6 @@ async function send() {
 
     isThinking.value = false
 
-    // Parse SSE stream
     const reader = response.body!.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
@@ -220,9 +218,8 @@ async function send() {
       buffer = lines.pop() || ''
 
       for (const line of lines) {
-        // Normalize: handle both "data: {...}" and "data:{...}"
         const trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith(':')) continue // Skip empty lines and SSE comments
+        if (!trimmed || trimmed.startsWith(':')) continue
 
         // 记录 event: 行,决定后面 data: 行怎么解读
         if (trimmed.startsWith('event:')) {
@@ -230,11 +227,10 @@ async function send() {
           continue
         }
 
-        // Extract payload after "data:" prefix (with or without space)
         let data: string
         if (trimmed.startsWith('data:')) {
-          data = trimmed.slice(5)  // Remove "data:"
-          if (data.startsWith(' ')) data = data.slice(1) // Remove leading space
+          data = trimmed.slice(5)
+          if (data.startsWith(' ')) data = data.slice(1)
         } else {
           continue
         }
@@ -249,7 +245,6 @@ async function send() {
             // 来源事件 → 挂到当前 assistant 消息,不追加正文
             messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
           } else {
-            // 智谱 GLM uses OpenAI-compatible format
             const content = parsed.choices?.[0]?.delta?.content
             if (content) {
               messages.value[assistantIndex].content += content
@@ -257,13 +252,13 @@ async function send() {
             }
           }
         } catch {
-          // Skip unparseable lines (e.g., keepalive comments)
+          // 解析不了的行(如心跳注释)跳过
         }
         currentEvent = ''   // 事件块结束,重置
       }
     }
   } catch (err: any) {
-    // Remove the empty assistant message on error
+    // 出错删掉空占位消息,显示错误横幅
     if (messages.value[assistantIndex]?.content === '') {
       messages.value.splice(assistantIndex, 1)
     }
@@ -271,7 +266,6 @@ async function send() {
   } finally {
     isStreaming.value = false
     isThinking.value = false
-    // Reset textarea height
     if (inputEl.value) {
       inputEl.value.style.height = 'auto'
     }
