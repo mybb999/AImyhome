@@ -1,14 +1,26 @@
 /**
- * LLM provider registry — config-driven so adding a model needs zero frontend changes.
- * Providers without a configured API key are hidden from the frontend list.
+ * LLM 提供方注册表 —— 配置驱动:加一个模型 = 数组里加一条,前端零改动。
+ * 没配 API key 的提供方会自动从下拉列表隐藏(见 availableProviders)。
+ *
+ * 注意(Task 7 之后):本文件只剩 availableProviders 被 models.get.ts 使用 ——
+ * 只负责「告诉前端有哪些模型可选」。真正的模型调用在 Python Agent 服务
+ * 那边(aimyhome-agent 的 app/llm.py),id 由前端透传过去。
+ * 下面的 resolveProvider / buildSystemPrompt 是旧版 agent.post.ts 直连
+ * LLM 时用的,现已无调用方,保留作参考。
  */
 
 export interface LLMProvider {
+  /** 模型 id:前端透传给 Agent 服务的 key("doubao" / "glm") */
   id: string
+  /** 下拉列表里显示的名字 */
   name: string
+  /** 下拉列表里的说明文字(免费额度/特点) */
   description: string
+  /** API 根地址(不带头路径) */
   baseURL: string
+  /** 具体模型名 */
   model: string
+  /** API key;没配 = undefined = 该模型不可用 */
   apiKey?: string
 }
 
@@ -17,7 +29,7 @@ const DEFAULT_ZHIPU_MODEL = 'glm-4.7-flash'
 const DOUBAO_BASE = 'https://ark.cn-beijing.volces.com/api/v3'
 const DOUBAO_MODEL = 'doubao-seed-2-0-lite-260215'
 
-/** Registry order = default priority (first available wins when client omits model) */
+/** 注册表。数组顺序 = 默认优先级(客户端不传 model 时,取第一个配了 key 的) */
 export const LLM_PROVIDERS: LLMProvider[] = [
   {
     id: 'doubao',
@@ -37,12 +49,12 @@ export const LLM_PROVIDERS: LLMProvider[] = [
   },
 ]
 
-/** Providers usable right now (key configured) */
+/** 现在真正可用的提供方:过滤掉没配 key 的(前端下拉只显示这些) */
 export function availableProviders(): LLMProvider[] {
   return LLM_PROVIDERS.filter(p => !!p.apiKey)
 }
 
-/** Whitelist resolve: unknown model id → 400 */
+/** 【已停用】按 id 从白名单里取提供方;未知 id 抛 400。旧版直连 LLM 时用的 */
 export function resolveProvider(modelId?: string): LLMProvider {
   const providers = availableProviders()
   if (providers.length === 0) {
@@ -56,7 +68,7 @@ export function resolveProvider(modelId?: string): LLMProvider {
   return provider
 }
 
-/** System prompt with the driving provider's name filled in */
+/** 【已停用】组装系统提示词(把当前提供方名字填进去)。旧版直连 LLM 时用的 */
 export function buildSystemPrompt(providerName: string): string {
   return `你是 熊仔 的 AI 助手，由 ${providerName} 驱动。你的特点：
 - 擅长Node全栈、前端开发、Vue 2、Vue 3、React、TypeScript、可视化等技术话题，包含所有前端技术栈以及Node相关的框架，例如Next和Nest后端技术栈

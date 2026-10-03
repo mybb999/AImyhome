@@ -84,8 +84,10 @@ const props = defineProps<{
   message: ChatMessage
 }>()
 
+/** 是不是用户发的:决定气泡靠左还是靠右、渲染纯文本还是 Markdown */
 const isUser = computed(() => props.message.role === 'user')
 
+/** 时间戳 → 显示用时间(今天只显示时分,跨天带日期) */
 const formattedTime = computed(() => {
   const d = new Date(props.message.timestamp)
   const now = new Date()
@@ -96,6 +98,7 @@ const formattedTime = computed(() => {
 })
 
 // ── Markdown renderer ──
+/** Markdown 渲染器:一次建好,整个组件复用。html:false = 不渲染原始 HTML(防 XSS) */
 const md = new MarkdownIt({
   html: false,
   linkify: true,
@@ -112,12 +115,14 @@ const md = new MarkdownIt({
   },
 })
 
+/** 消息正文 → HTML,交给 v-html 渲染(用户消息不用,直接返回空) */
 const renderedMarkdown = computed(() => {
   if (isUser.value) return ''
   return md.render(props.message.content || '▋')
 })
 
 // ── Inject highlight.js dark theme (client only) ──
+// 代码高亮的配色写死成一段内联样式,只在浏览器端注入一次(SSR 时没有 document)
 if (typeof document !== 'undefined') {
   const themeId = 'hljs-theme-agent'
   if (!document.getElementById(themeId)) {

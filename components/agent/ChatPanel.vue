@@ -147,11 +147,22 @@ const models = ref<LLMModelInfo[]>([])
 const selectedModel = ref('')
 const showModelMenu = ref(false)
 
+/** 当前选中模型的中文名,显示在顶栏切换按钮上 */
 const currentModelName = computed(() =>
   models.value.find(m => m.id === selectedModel.value)?.name || 'AI 助手'
 )
 
 // ── Send message ──
+/**
+ * 发送一条消息的完整流程:
+ * 1. 用户消息 + 一条空的 assistant 占位消息(流式往里填)推进列表
+ * 2. fetch /api/agent,带上完整历史(Agent 无记忆,每轮都传全)
+ * 3. 逐行解析 SSE 流:
+ *    - event: 行记录事件类型(决定后面的 data: 怎么解读)
+ *    - data: sources 事件 → 挂到 assistant 消息的 sources(参考资料块)
+ *    - data: 文本流 → 追加进 assistant 消息 content(打字机效果)
+ * 4. 出错:删掉空占位消息,显示错误横幅
+ */
 async function send() {
   const content = input.value.trim()
   if (!content || isStreaming.value) return
@@ -276,6 +287,7 @@ async function send() {
 }
 
 // ── Keyboard handling ──
+/** Enter 发送,Shift+Enter 换行 */
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
@@ -284,6 +296,7 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 // ── Auto-resize textarea ──
+/** 输入框随内容自动长高,最高 160px */
 function autoResize() {
   const el = inputEl.value
   if (!el) return
@@ -292,6 +305,7 @@ function autoResize() {
 }
 
 // ── Scroll ──
+/** 滚动到最新一条消息(流式回答每追加一段就调一次) */
 function scrollToBottom() {
   nextTick(() => {
     const el = messagesContainer.value
@@ -300,6 +314,7 @@ function scrollToBottom() {
   })
 }
 
+/** 用户往上翻超过 100px 时,显示「回到底部」按钮 */
 function checkScrollPosition() {
   const el = messagesContainer.value
   if (!el) return
@@ -308,6 +323,7 @@ function checkScrollPosition() {
 }
 
 // ── Clear chat ──
+/** 清空本页对话(纯前端清数组;Agent 无记忆,刷新本来就没了) */
 function clearChat() {
   messages.value = []
   errorMessage.value = ''
@@ -320,6 +336,7 @@ function clearChat() {
 }
 
 // ── Model selection ──
+/** 切换对话模型:更新选中态 + 存 localStorage,下次打开还在 */
 function selectModel(id: string) {
   selectedModel.value = id
   showModelMenu.value = false
@@ -327,6 +344,7 @@ function selectModel(id: string) {
 }
 
 // ── Lifecycle ──
+/** 挂载时:绑滚动监听 + 拉模型列表(恢复上次的选择) */
 onMounted(async () => {
   const el = messagesContainer.value
   if (el) {
@@ -349,6 +367,7 @@ onMounted(async () => {
   }
 })
 
+/** 卸载时解绑滚动监听,防止内存泄漏 */
 onUnmounted(() => {
   const el = messagesContainer.value
   if (el) {
