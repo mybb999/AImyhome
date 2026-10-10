@@ -20,11 +20,17 @@ export default defineEventHandler(async (event) => {
   // Agent 服务地址:本地开发默认 127.0.0.1:8000,生产在 Vercel 配环境变量
   const agentBase = (process.env.AGENT_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')
 
+  // M3.2:登录用户的 Authorization 头透传给 Agent(会话归属校验要用)
+  const auth = getHeader(event, 'authorization')
+
   let res: Response
   try {
     res = await fetch(`${agentBase}/api/agent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
+      },
       body: JSON.stringify(body),
     })
   } catch {
@@ -32,8 +38,9 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!res.ok) {
+    // 原样透传状态码:401/403 让前端能识别登录失效/会话不属于自己
     const text = await res.text().catch(() => 'Unknown error')
-    throw createError({ statusCode: 502, statusMessage: `Agent error: ${text.slice(0, 200)}` })
+    throw createError({ statusCode: res.status, statusMessage: `Agent error: ${text.slice(0, 200)}` })
   }
 
   const webStream = res.body!
