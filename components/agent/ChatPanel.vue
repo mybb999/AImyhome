@@ -2,11 +2,11 @@
   <div class="card flex h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] relative overflow-hidden">
     <!-- ── 会话侧栏(M3.2):登录用户有会话列表;游客显示登录表单 ── -->
     <aside class="w-52 shrink-0 border-r border-brand-border flex flex-col overflow-y-auto">
-      <template v-if="auth.user">
+      <template v-if="authUser">
         <!-- 已登录:用户行 -->
         <div class="p-3 border-b border-brand-border flex items-center justify-between gap-2 shrink-0">
           <div class="min-w-0">
-            <div class="text-body-sm font-medium text-on-surface truncate">{{ auth.user.username }}</div>
+            <div class="text-body-sm font-medium text-on-surface truncate">{{ authUser.username }}</div>
             <div class="text-label-sm text-on-surface-variant/60">已登录</div>
           </div>
           <button class="btn-ghost text-label-sm shrink-0" title="退出登录" @click="handleLogout">退出</button>
@@ -211,7 +211,7 @@
           </button>
         </div>
         <p class="mt-1.5 text-label-sm text-on-surface-variant/60">
-          Enter 发送 · Shift+Enter 换行 · {{ auth.user ? '对话已保存到账号' : '登录后对话不丢失' }}
+          Enter 发送 · Shift+Enter 换行 · {{ authUser ? '对话已保存到账号' : '登录后对话不丢失' }}
         </p>
       </div>
     </div>
@@ -223,7 +223,9 @@ import type { ChatMessage, LLMModelInfo, SourceItem } from '~/types/chat'
 import { generateMessageId } from '~/types/chat'
 
 // ── 登录状态(M3.2) ──
-const auth = useAgentAuth()
+// 注意要解构成顶层 ref:模板里「普通对象里的 ref」不会自动解包(auth.user 永远是
+// truthy 的 Ref 对象,v-if 恒真 —— 实测踩过);解构后 user/token 在模板里直接用
+const { user: authUser, token: authToken, login, register, logout, restore: restoreAuth } = useAgentAuth()
 const authMode = ref<'login' | 'register'>('login')
 const authForm = ref({ username: '', password: '' })
 const authError = ref('')
@@ -262,9 +264,9 @@ async function handleAuthSubmit() {
   authLoading.value = true
   try {
     if (authMode.value === 'login') {
-      await auth.login(authForm.value.username.trim(), authForm.value.password)
+      await login(authForm.value.username.trim(), authForm.value.password)
     } else {
-      await auth.register(authForm.value.username.trim(), authForm.value.password)
+      await register(authForm.value.username.trim(), authForm.value.password)
     }
     authError.value = ''
     await refreshConversations()
@@ -277,7 +279,7 @@ async function handleAuthSubmit() {
 
 // 退出:清登录态 + 会话列表 + 当前对话(游客消息本来就不保存)
 function handleLogout() {
-  auth.logout()
+  logout()
   conversations.value = []
   currentConversationId.value = null
   messages.value = []
@@ -288,7 +290,7 @@ function handleLogout() {
 // 拉会话列表;有会话则选中最近活跃的一个
 async function refreshConversations() {
   const res = await fetch('/api/conversations', {
-    headers: { Authorization: `Bearer ${auth.token.value}` },
+    headers: { Authorization: `Bearer ${authToken.value}` },
   })
   if (!res.ok) return
   const data = await res.json()
@@ -300,7 +302,7 @@ async function newConversation() {
   if (isStreaming.value) return
   const res = await fetch('/api/conversations', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${auth.token.value}` },
+    headers: { Authorization: `Bearer ${authToken.value}` },
   })
   if (!res.ok) {
     errorMessage.value = '新建会话失败,请重试'
@@ -320,7 +322,7 @@ async function selectConversation(id: number) {
   messages.value = []
   errorMessage.value = ''
   const res = await fetch(`/api/conversations/${id}/messages`, {
-    headers: { Authorization: `Bearer ${auth.token.value}` },
+    headers: { Authorization: `Bearer ${authToken.value}` },
   })
   if (!res.ok) return
   const data = await res.json()
@@ -338,7 +340,7 @@ async function selectConversation(id: number) {
 async function removeConversation(id: number) {
   const res = await fetch(`/api/conversations/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${auth.token.value}` },
+    headers: { Authorization: `Bearer ${authToken.value}` },
   })
   if (!res.ok) return
   conversations.value = conversations.value.filter(c => c.id !== id)
@@ -382,7 +384,7 @@ async function send() {
 
   // M3.2:登录用户 → 只发最新一句 + conversation_id(历史由服务端 checkpointer 补);
   // 游客 → 老路,带完整历史(排除那条空的占位消息)
-  const loggedIn = !!auth.user.value && currentConversationId.value != null
+  const loggedIn = !!authUser.value && currentConversationId.value != null
   const requestMessages = messages.value
     .filter(m => m.content !== '')
     .map(m => ({ role: m.role, content: m.content }))
@@ -399,7 +401,7 @@ async function send() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(loggedIn ? { Authorization: `Bearer ${auth.token.value}` } : {}),
+        ...(loggedIn ? { Authorization: `Bearer ${authToken.value}` } : {}),
       },
       body: JSON.stringify(body),
     })
@@ -544,8 +546,8 @@ function selectModel(id: string) {
 // ── Lifecycle ──
 // 挂载时:恢复登录态 + 绑滚动监听 + 拉模型列表
 onMounted(async () => {
-  auth.restore()
-  if (auth.user.value) {
+  restoreAuth()
+  if (authUser.value) {
     await refreshConversations()
   }
 
