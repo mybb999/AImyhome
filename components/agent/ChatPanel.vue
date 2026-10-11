@@ -378,13 +378,21 @@ async function handleChangePassword() {
   }
 }
 
-// 退出:清登录态 + 会话列表 + 当前对话(游客消息本来就不保存)
+// 退出:登录态/会话列表/聊天区/输入框全清干净(游客消息本来就不保存)。
+// 连正在生成中的流也拦不住地清 —— 流还在写也没用,写入处有存在性检查
 function handleLogout() {
   logout()
   conversations.value = []
   currentConversationId.value = null
   messages.value = []
   errorMessage.value = ''
+  input.value = ''
+  showChangePwd.value = false
+  pwdForm.value = { oldPassword: '', newPassword: '' }
+  pwdMsg.value = ''
+  if (inputEl.value) {
+    inputEl.value.style.height = 'auto'
+  }
 }
 
 // ── 会话管理 ──
@@ -563,10 +571,13 @@ async function send() {
           const parsed = JSON.parse(data)
           if (currentEvent === 'sources') {
             // 来源事件 → 挂到当前 assistant 消息,不追加正文
-            messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
+            // (存在性检查:流没结束就退出登录时,消息已被清空,别再往空数组写)
+            if (messages.value[assistantIndex]) {
+              messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
+            }
           } else {
             const content = parsed.choices?.[0]?.delta?.content
-            if (content) {
+            if (content && messages.value[assistantIndex]) {
               messages.value[assistantIndex].content += content
               scrollToBottom()
             }
