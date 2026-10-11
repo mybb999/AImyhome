@@ -23,7 +23,8 @@
           </button>
         </div>
 
-        <!-- 会话列表:点哪条切哪条,当前高亮。这是唯一滚动的区域(flex-1 + overflow-y-auto) -->
+        <!-- 会话列表(豆包式:主会话置顶 📌,分支对话排在下面)。
+             点哪条切哪条,当前高亮。这是唯一滚动的区域(flex-1 + overflow-y-auto) -->
         <div class="flex-1 px-2 pb-2 space-y-0.5 overflow-y-auto sidebar-scroll">
           <button
             v-for="c in conversations"
@@ -34,8 +35,11 @@
               : 'text-on-surface-variant hover:bg-surface-high/50 hover:text-on-surface'"
             @click="selectConversation(c.id)"
           >
-            <span class="truncate">{{ c.title || '新会话' }}</span>
+            <!-- 主会话标记:置顶 + 不可删(后端也拦);分支可删 -->
+            <span v-if="c.is_main" class="shrink-0 text-label-sm" title="主会话">📌</span>
+            <span class="truncate">{{ c.title || (c.is_main ? '主会话' : '新会话') }}</span>
             <span
+              v-if="!c.is_main"
               class="opacity-0 group-hover:opacity-100 text-on-surface-variant/50 hover:text-red-400 shrink-0"
               title="删除会话"
               @click.stop="removeConversation(c.id)"
@@ -307,7 +311,7 @@ const pwdLoading = ref(false)
 const points = ref(100)
 
 // ── 会话管理(M3.2,登录用户才有) ──
-const conversations = ref<{ id: number; title: string }[]>([])
+const conversations = ref<{ id: number; title: string; is_main?: boolean }[]>([])
 const currentConversationId = ref<number | null>(null)
 
 // ── State ──
@@ -385,7 +389,8 @@ function handleLogout() {
 }
 
 // ── 会话管理 ──
-// 拉会话列表;有会话则选中最近活跃的一个
+// 拉会话列表(服务端已排好:主会话置顶,分支按活跃倒序);
+// 还没选中任何会话时,自动进主会话 —— 刷新/登录进来就落在主会话上(豆包式)
 async function refreshConversations() {
   const res = await fetch('/api/conversations', {
     headers: { Authorization: `Bearer ${authToken.value}` },
@@ -393,6 +398,9 @@ async function refreshConversations() {
   if (!res.ok) return
   const data = await res.json()
   conversations.value = data.items || []
+  if (authUser.value && currentConversationId.value == null && conversations.value.length > 0) {
+    await selectConversation(conversations.value[0].id)
+  }
 }
 
 // 新建会话:建完切过去(消息区清空)
@@ -407,7 +415,8 @@ async function newConversation() {
     return
   }
   const data = await res.json()
-  conversations.value.unshift({ id: data.id, title: '' })
+  // 新会话是「分支」:插到主会话下面(主会话永远置顶在 index 0)
+  conversations.value.splice(1, 0, { id: data.id, title: '', is_main: false })
   currentConversationId.value = data.id
   messages.value = []
   errorMessage.value = ''
@@ -434,7 +443,8 @@ async function selectConversation(id: number) {
   scrollToBottom()
 }
 
-// 删除会话:删掉后从列表移除;删的是当前会话则回空状态
+// 删除会话(只能删分支,主会话无删除入口且后端也拦):
+// 删掉后从列表移除;删的是当前分支则自动回到主会话 —— 永远有个「家」可回
 async function removeConversation(id: number) {
   const res = await fetch(`/api/conversations/${id}`, {
     method: 'DELETE',
@@ -445,6 +455,10 @@ async function removeConversation(id: number) {
   if (currentConversationId.value === id) {
     currentConversationId.value = null
     messages.value = []
+    const main = conversations.value.find(c => c.is_main)
+    if (main) {
+      selectConversation(main.id)
+    }
   }
 }
 
