@@ -117,8 +117,7 @@
       <template v-else>
         <!-- 未登录:登录/注册表单(窄窗口下也允许滚动) -->
         <div class="p-3 flex-1 overflow-y-auto">
-          <p class="text-body-sm font-medium text-on-surface">登录后对话不丢失</p>
-          <p class="mt-0.5 text-label-sm text-on-surface-variant/60">会话历史跟着账号走,换设备也能接着聊</p>
+          <p class="text-body-sm font-medium text-on-surface text-center">会员</p>
 
           <div class="mt-3 flex rounded-lg overflow-hidden border border-brand-border text-label-sm">
             <button
