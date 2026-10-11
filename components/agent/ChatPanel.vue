@@ -1,51 +1,11 @@
 <template>
   <div class="card flex h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] relative overflow-hidden">
     <!-- ── 会话侧栏(M3.2):登录用户有会话列表;游客显示登录表单 ── -->
-    <aside class="w-52 shrink-0 border-r border-brand-border flex flex-col overflow-y-auto">
+    <!-- 注意:aside 本身不滚 —— 滚动只发生在中间的会话列表区,
+         这样顶部「新会话」和底部用户区(用户卡/退出)始终固定 -->
+    <aside class="w-52 shrink-0 border-r border-brand-border flex flex-col">
       <template v-if="authUser">
-        <!-- 用户卡:头像 + 用户名 + 改密码入口(点改密码切成表单) -->
-        <div class="p-3 border-b border-brand-border shrink-0">
-          <template v-if="!showChangePwd">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center
-                          text-body-md font-semibold shrink-0">
-                {{ authUser.username.slice(0, 1).toUpperCase() }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="text-body-sm font-medium text-on-surface truncate">{{ authUser.username }}</div>
-                <div class="text-label-sm text-on-surface-variant/60">已登录</div>
-              </div>
-              <button class="btn-ghost text-label-sm shrink-0" title="修改密码" @click="showChangePwd = true">改密码</button>
-            </div>
-          </template>
-          <template v-else>
-            <!-- 改密码表单:旧密码证明本人 → 新密码覆盖 -->
-            <p class="text-body-sm font-medium text-on-surface mb-2">修改密码</p>
-            <form class="space-y-2" @submit.prevent="handleChangePassword">
-              <input v-model="pwdForm.oldPassword" type="password" placeholder="旧密码"
-                class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
-                       placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
-              <input v-model="pwdForm.newPassword" type="password" placeholder="新密码(至少 6 位)"
-                class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
-                       placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
-              <p v-if="pwdMsg" class="text-label-sm" :class="pwdOk ? 'text-green-400' : 'text-red-400'">{{ pwdMsg }}</p>
-              <div class="flex gap-2">
-                <button type="submit" :disabled="pwdLoading"
-                  class="flex-1 py-1.5 rounded-lg text-body-sm font-medium bg-brand-accent text-on-primary
-                         hover:bg-brand-accent-strong disabled:opacity-40 transition-colors">
-                  {{ pwdLoading ? '提交中…' : '提交' }}
-                </button>
-                <button type="button"
-                  class="px-3 py-1.5 rounded-lg text-body-sm text-on-surface-variant hover:bg-surface-high/50 transition-colors"
-                  @click="showChangePwd = false; pwdMsg = ''">
-                  取消
-                </button>
-              </div>
-            </form>
-          </template>
-        </div>
-
-        <!-- 新建会话按钮 -->
+        <!-- 新建会话按钮(顶部主操作) -->
         <div class="p-2.5 shrink-0">
           <button
             class="w-full py-2 rounded-lg text-body-sm font-medium bg-brand-accent/10 text-brand-accent
@@ -58,8 +18,8 @@
           </button>
         </div>
 
-        <!-- 会话列表:点哪条切哪条,当前高亮 -->
-        <div class="flex-1 px-2 pb-2 space-y-0.5">
+        <!-- 会话列表:点哪条切哪条,当前高亮。这是唯一滚动的区域(flex-1 + overflow-y-auto) -->
+        <div class="flex-1 px-2 pb-2 space-y-0.5 overflow-y-auto">
           <button
             v-for="c in conversations"
             :key="c.id"
@@ -81,21 +41,64 @@
           </p>
         </div>
 
-        <!-- 底部固定:退出登录 -->
-        <div class="p-2.5 border-t border-brand-border shrink-0">
-          <button
-            class="w-full py-1.5 rounded-lg text-body-sm text-on-surface-variant
-                   hover:text-on-surface hover:bg-surface-high/50 transition-colors"
-            @click="handleLogout"
-          >
-            退出登录
-          </button>
+        <!-- 底部用户区:用户卡(或改密码表单)+ 退出,沉在侧栏底部 -->
+        <div class="border-t border-brand-border shrink-0">
+          <div class="p-3 pb-2">
+            <template v-if="!showChangePwd">
+              <!-- 用户卡:头像 + 用户名 + 改密码入口 -->
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center
+                            text-body-md font-semibold shrink-0">
+                  {{ authUser.username.slice(0, 1).toUpperCase() }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-body-sm font-medium text-on-surface truncate">{{ authUser.username }}</div>
+                  <div class="text-label-sm text-on-surface-variant/60">已登录</div>
+                </div>
+                <button class="btn-ghost text-label-sm shrink-0" title="修改密码" @click="showChangePwd = true">改密码</button>
+              </div>
+            </template>
+            <template v-else>
+              <!-- 改密码表单:旧密码证明本人 → 新密码覆盖 -->
+              <p class="text-body-sm font-medium text-on-surface mb-2">修改密码</p>
+              <form class="space-y-2" @submit.prevent="handleChangePassword">
+                <input v-model="pwdForm.oldPassword" type="password" placeholder="旧密码"
+                  class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
+                         placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+                <input v-model="pwdForm.newPassword" type="password" placeholder="新密码(至少 6 位)"
+                  class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
+                         placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+                <p v-if="pwdMsg" class="text-label-sm" :class="pwdOk ? 'text-green-400' : 'text-red-400'">{{ pwdMsg }}</p>
+                <div class="flex gap-2">
+                  <button type="submit" :disabled="pwdLoading"
+                    class="flex-1 py-1.5 rounded-lg text-body-sm font-medium bg-brand-accent text-on-primary
+                           hover:bg-brand-accent-strong disabled:opacity-40 transition-colors">
+                    {{ pwdLoading ? '提交中…' : '提交' }}
+                  </button>
+                  <button type="button"
+                    class="px-3 py-1.5 rounded-lg text-body-sm text-on-surface-variant hover:bg-surface-high/50 transition-colors"
+                    @click="showChangePwd = false; pwdMsg = ''">
+                    取消
+                  </button>
+                </div>
+              </form>
+            </template>
+          </div>
+          <div class="px-2.5 pb-2.5">
+            <button
+              class="w-full py-1.5 rounded-lg text-body-sm text-on-surface-variant
+                     hover:text-on-surface hover:bg-surface-high/50 transition-colors"
+              @click="handleLogout"
+            >
+              退出登录
+            </button>
+          </div>
         </div>
       </template>
 
       <template v-else>
-        <!-- 未登录:登录/注册表单 -->
-        <div class="p-3">
+        <!-- 未登录:登录/注册表单(窄窗口下也允许滚动) -->
+        <div class="p-3 flex-1 overflow-y-auto">
           <p class="text-body-sm font-medium text-on-surface">登录后对话不丢失</p>
           <p class="mt-0.5 text-label-sm text-on-surface-variant/60">会话历史跟着账号走,换设备也能接着聊</p>
 
