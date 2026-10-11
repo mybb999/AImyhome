@@ -57,6 +57,23 @@ export function useAgentAuth() {
     return submit('/api/auth/register', username, password)
   }
 
+  // 改密码(登录后自助):旧密码证明本人,新密码覆盖
+  async function changePassword(oldPassword: string, newPassword: string) {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token.value}`,
+      },
+      body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      const message = data?.detail || data?.statusMessage || '修改失败,请重试'
+      throw new Error(message)
+    }
+  }
+
   // 退出:清掉本地登录态(服务端 token 无状态,过期自动失效)
   function logout() {
     token.value = ''
@@ -65,5 +82,5 @@ export function useAgentAuth() {
     localStorage.removeItem('agent-user')
   }
 
-  return { token, user, restore, login, register, logout }
+  return { token, user, restore, login, register, changePassword, logout }
 }

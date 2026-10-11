@@ -3,24 +3,58 @@
     <!-- ── 会话侧栏(M3.2):登录用户有会话列表;游客显示登录表单 ── -->
     <aside class="w-52 shrink-0 border-r border-brand-border flex flex-col overflow-y-auto">
       <template v-if="authUser">
-        <!-- 已登录:用户行 -->
-        <div class="p-3 border-b border-brand-border flex items-center justify-between gap-2 shrink-0">
-          <div class="min-w-0">
-            <div class="text-body-sm font-medium text-on-surface truncate">{{ authUser.username }}</div>
-            <div class="text-label-sm text-on-surface-variant/60">已登录</div>
-          </div>
-          <button class="btn-ghost text-label-sm shrink-0" title="退出登录" @click="handleLogout">退出</button>
+        <!-- 用户卡:头像 + 用户名 + 改密码入口(点改密码切成表单) -->
+        <div class="p-3 border-b border-brand-border shrink-0">
+          <template v-if="!showChangePwd">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center
+                          text-body-md font-semibold shrink-0">
+                {{ authUser.username.slice(0, 1).toUpperCase() }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-body-sm font-medium text-on-surface truncate">{{ authUser.username }}</div>
+                <div class="text-label-sm text-on-surface-variant/60">已登录</div>
+              </div>
+              <button class="btn-ghost text-label-sm shrink-0" title="修改密码" @click="showChangePwd = true">改密码</button>
+            </div>
+          </template>
+          <template v-else>
+            <!-- 改密码表单:旧密码证明本人 → 新密码覆盖 -->
+            <p class="text-body-sm font-medium text-on-surface mb-2">修改密码</p>
+            <form class="space-y-2" @submit.prevent="handleChangePassword">
+              <input v-model="pwdForm.oldPassword" type="password" placeholder="旧密码"
+                class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
+                       placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+              <input v-model="pwdForm.newPassword" type="password" placeholder="新密码(至少 6 位)"
+                class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
+                       placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+              <p v-if="pwdMsg" class="text-label-sm" :class="pwdOk ? 'text-green-400' : 'text-red-400'">{{ pwdMsg }}</p>
+              <div class="flex gap-2">
+                <button type="submit" :disabled="pwdLoading"
+                  class="flex-1 py-1.5 rounded-lg text-body-sm font-medium bg-brand-accent text-on-primary
+                         hover:bg-brand-accent-strong disabled:opacity-40 transition-colors">
+                  {{ pwdLoading ? '提交中…' : '提交' }}
+                </button>
+                <button type="button"
+                  class="px-3 py-1.5 rounded-lg text-body-sm text-on-surface-variant hover:bg-surface-high/50 transition-colors"
+                  @click="showChangePwd = false; pwdMsg = ''">
+                  取消
+                </button>
+              </div>
+            </form>
+          </template>
         </div>
 
         <!-- 新建会话按钮 -->
-        <div class="p-2 shrink-0">
+        <div class="p-2.5 shrink-0">
           <button
-            class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium
-                   border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 transition-colors"
+            class="w-full py-2 rounded-lg text-body-sm font-medium bg-brand-accent/10 text-brand-accent
+                   border border-brand-accent/30 hover:bg-brand-accent/20 transition-colors
+                   flex items-center justify-center gap-1.5"
             :disabled="isStreaming"
             @click="newConversation"
           >
-            <span>＋</span> 新会话
+            <span class="text-body-md leading-none">＋</span> 新会话
           </button>
         </div>
 
@@ -45,6 +79,17 @@
           <p v-if="conversations.length === 0" class="px-3 py-2 text-label-sm text-on-surface-variant/50">
             还没有会话,点「新会话」开始
           </p>
+        </div>
+
+        <!-- 底部固定:退出登录 -->
+        <div class="p-2.5 border-t border-brand-border shrink-0">
+          <button
+            class="w-full py-1.5 rounded-lg text-body-sm text-on-surface-variant
+                   hover:text-on-surface hover:bg-surface-high/50 transition-colors"
+            @click="handleLogout"
+          >
+            退出登录
+          </button>
         </div>
       </template>
 
@@ -225,11 +270,18 @@ import { generateMessageId } from '~/types/chat'
 // ── 登录状态(M3.2) ──
 // 注意要解构成顶层 ref:模板里「普通对象里的 ref」不会自动解包(auth.user 永远是
 // truthy 的 Ref 对象,v-if 恒真 —— 实测踩过);解构后 user/token 在模板里直接用
-const { user: authUser, token: authToken, login, register, logout, restore: restoreAuth } = useAgentAuth()
+const { user: authUser, token: authToken, login, register, logout, restore: restoreAuth, changePassword } = useAgentAuth()
 const authMode = ref<'login' | 'register'>('login')
 const authForm = ref({ username: '', password: '' })
 const authError = ref('')
 const authLoading = ref(false)
+
+// ── 改密码状态(用户卡里切换显示) ──
+const showChangePwd = ref(false)
+const pwdForm = ref({ oldPassword: '', newPassword: '' })
+const pwdMsg = ref('')
+const pwdOk = ref(false)
+const pwdLoading = ref(false)
 
 // ── 会话管理(M3.2,登录用户才有) ──
 const conversations = ref<{ id: number; title: string }[]>([])
@@ -274,6 +326,29 @@ async function handleAuthSubmit() {
     authError.value = err.message || '操作失败,请重试'
   } finally {
     authLoading.value = false
+  }
+}
+
+// ── 改密码 ──
+// 提交改密码表单:成功后提示 + 清空表单,不自动退出(当前 token 仍有效)
+async function handleChangePassword() {
+  pwdMsg.value = ''
+  if (!pwdForm.value.oldPassword || !pwdForm.value.newPassword) {
+    pwdMsg.value = '请填写旧密码和新密码'
+    pwdOk.value = false
+    return
+  }
+  pwdLoading.value = true
+  try {
+    await changePassword(pwdForm.value.oldPassword, pwdForm.value.newPassword)
+    pwdOk.value = true
+    pwdMsg.value = '密码已修改'
+    pwdForm.value = { oldPassword: '', newPassword: '' }
+  } catch (err: any) {
+    pwdOk.value = false
+    pwdMsg.value = err.message || '修改失败,请重试'
+  } finally {
+    pwdLoading.value = false
   }
 }
 
