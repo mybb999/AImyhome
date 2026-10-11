@@ -3,8 +3,13 @@
     <!-- ── 会话侧栏(M3.2):登录用户有会话列表;游客显示登录表单 ── -->
     <!-- 注意:aside 本身不滚 —— 滚动只发生在中间的会话列表区,
          这样顶部「新会话」和底部用户区(用户卡/退出)始终固定 -->
-    <aside class="w-52 shrink-0 border-r border-brand-border flex flex-col">
-      <template v-if="authUser">
+    <!-- -ml-5 + w-[228px]:.card 自带 20px 内边距,会把侧栏整体右推,
+         视觉上「左边距 30px、右边距 10px」不居中。负外边距抵消这 20px、
+         宽度补回来 —— 右边框线和聊天区纹丝不动,内容真正居中 -->
+    <aside class="w-[228px] shrink-0 -ml-5 border-r border-brand-border flex flex-col">
+      <!-- 登录态就绪前(首屏 JS 未加载完)不渲染内容:否则会先闪一下登录表单 -->
+      <div v-if="!authReady" class="flex-1" />
+      <template v-else-if="authUser">
         <!-- 新建会话按钮(顶部主操作) -->
         <div class="p-2.5 shrink-0">
           <button
@@ -283,6 +288,9 @@ import { generateMessageId } from '~/types/chat'
 // 注意要解构成顶层 ref:模板里「普通对象里的 ref」不会自动解包(auth.user 永远是
 // truthy 的 Ref 对象,v-if 恒真 —— 实测踩过);解构后 user/token 在模板里直接用
 const { user: authUser, token: authToken, login, register, logout, restore: restoreAuth, changePassword } = useAgentAuth()
+// 登录态是否已从 localStorage 恢复(onMounted 里置 true):
+// 首屏 JS 未就绪前侧栏不渲染,避免闪出「登录表单」(SSR 时本地没 token 的默认形态)
+const authReady = ref(false)
 const authMode = ref<'login' | 'register'>('login')
 const authForm = ref({ username: '', password: '' })
 const authError = ref('')
@@ -637,6 +645,7 @@ function selectModel(id: string) {
 // 挂载时:恢复登录态 + 绑滚动监听 + 拉模型列表
 onMounted(async () => {
   restoreAuth()
+  authReady.value = true
   if (authUser.value) {
     await refreshConversations()
   }
