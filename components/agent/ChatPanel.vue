@@ -253,6 +253,18 @@
 
       <!-- ── Input area ── -->
       <div class="pt-3 border-t border-brand-border shrink-0 px-4 pb-4">
+        <!-- 文档上传(仅会员;M4):解析成功挂在当前会话的临时库,直接开问 -->
+        <div v-if="authUser" class="mb-2 flex items-center gap-2">
+          <label class="chip cursor-pointer hover:bg-surface-high/50 transition-colors">
+            📄 上传文档
+            <input type="file" accept=".pdf,.doc,.docx" class="hidden" :disabled="uploading"
+              @change="handleUpload" />
+          </label>
+          <span v-if="uploading" class="text-label-sm text-on-surface-variant/70">解析中,稍等…</span>
+          <span v-else-if="uploadMsg" class="text-label-sm" :class="uploadOk ? 'text-green-400' : 'text-red-400'">
+            {{ uploadMsg }}
+          </span>
+        </div>
         <div class="flex gap-2">
           <textarea ref="inputEl" v-model="input" class="flex-1 resize-none rounded-lg px-4 py-2.5 text-body-md
                    bg-brand-bg border border-brand-border
@@ -466,6 +478,49 @@ async function removeConversation(id: number) {
     if (main) {
       selectConversation(main.id)
     }
+  }
+}
+
+// ── 文档上传(M4,仅会员)──
+const uploading = ref(false)
+const uploadOk = ref(false)
+const uploadMsg = ref('')
+
+// 上传文档:解析服务(8001)解析成 Markdown,切片挂当前会话的临时库;
+// 解析完直接在对话里问,问题会命中 Agent 的 search_document 工具
+async function handleUpload(e: Event) {
+  const el = e.target as HTMLInputElement
+  const file = el.files?.[0]
+  if (!file) return
+  el.value = ''               // 同一文件可重复选
+  if (!currentConversationId.value) {
+    uploadMsg.value = '先选一个会话再上传'
+    uploadOk.value = false
+    return
+  }
+  const form = new FormData()
+  form.append('file', file)
+  form.append('conversation_id', String(currentConversationId.value))
+  uploading.value = true
+  uploadOk.value = false
+  uploadMsg.value = ''
+  try {
+    const res = await fetch('/api/parse', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+      body: form,
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(data?.detail || '解析失败,请重试')
+    }
+    uploadOk.value = true
+    uploadMsg.value = `《${file.name}》解析完成,直接问它内容吧`
+  } catch (err: any) {
+    uploadOk.value = false
+    uploadMsg.value = err.message || '解析失败,请重试'
+  } finally {
+    uploading.value = false
   }
 }
 
