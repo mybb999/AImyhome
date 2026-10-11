@@ -19,11 +19,11 @@
         </div>
 
         <!-- 会话列表:点哪条切哪条,当前高亮。这是唯一滚动的区域(flex-1 + overflow-y-auto) -->
-        <div class="flex-1 px-2 pb-2 space-y-0.5 overflow-y-auto">
+        <div class="flex-1 px-2 pb-2 space-y-0.5 overflow-y-auto sidebar-scroll">
           <button
             v-for="c in conversations"
             :key="c.id"
-            class="w-full text-left px-3 py-2 rounded-lg text-body-sm transition-colors truncate flex items-center justify-between gap-1 group"
+            class="w-full text-center px-3 py-2 rounded-lg text-body-sm transition-colors truncate flex items-center justify-center gap-1 group"
             :class="currentConversationId === c.id
               ? 'bg-brand-accent/15 text-brand-accent font-medium'
               : 'text-on-surface-variant hover:bg-surface-high/50 hover:text-on-surface'"
@@ -36,31 +36,33 @@
               @click.stop="removeConversation(c.id)"
             >✕</span>
           </button>
-          <p v-if="conversations.length === 0" class="px-3 py-2 text-label-sm text-on-surface-variant/50">
+          <p v-if="conversations.length === 0" class="px-3 py-2 text-label-sm text-on-surface-variant/50 text-center">
             还没有会话,点「新会话」开始
           </p>
         </div>
 
-        <!-- 底部用户区:用户卡(或改密码表单)+ 退出,沉在侧栏底部 -->
-        <div class="border-t border-brand-border shrink-0">
+        <!-- 底部用户区:用户卡(或改密码表单)+ 操作行,沉在侧栏底部,整体居中 -->
+        <div class="shrink-0">
+          <!-- 分隔线:两端留白居中,不贴边 -->
+          <div class="border-t border-brand-border mx-3" />
           <div class="p-3 pb-2">
             <template v-if="!showChangePwd">
-              <!-- 用户卡:头像 + 用户名 + 改密码入口 -->
-              <div class="flex items-center gap-2.5">
+              <!-- 用户卡:竖排居中(头像/用户名/剩余积分)+ 操作行 -->
+              <div class="flex flex-col items-center text-center">
                 <div class="w-9 h-9 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center
-                            text-body-md font-semibold shrink-0">
+                            text-body-md font-semibold">
                   {{ authUser.username.slice(0, 1).toUpperCase() }}
                 </div>
-                <div class="min-w-0 flex-1">
-                  <div class="text-body-sm font-medium text-on-surface truncate">{{ authUser.username }}</div>
-                  <div class="text-label-sm text-on-surface-variant/60">已登录</div>
+                <div class="mt-1.5 text-body-sm font-medium text-on-surface truncate max-w-full">
+                  {{ authUser.username }}
                 </div>
-                <button class="btn-ghost text-label-sm shrink-0" title="修改密码" @click="showChangePwd = true">改密码</button>
+                <!-- 剩余积分:占位值,后续随所选模型切换而变化(计费体系未做) -->
+                <div class="mt-0.5 text-label-sm text-on-surface-variant/60">剩余积分 {{ points }}</div>
               </div>
             </template>
             <template v-else>
               <!-- 改密码表单:旧密码证明本人 → 新密码覆盖 -->
-              <p class="text-body-sm font-medium text-on-surface mb-2">修改密码</p>
+              <p class="text-body-sm font-medium text-on-surface mb-2 text-center">修改密码</p>
               <form class="space-y-2" @submit.prevent="handleChangePassword">
                 <input v-model="pwdForm.oldPassword" type="password" placeholder="旧密码"
                   class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
@@ -68,7 +70,7 @@
                 <input v-model="pwdForm.newPassword" type="password" placeholder="新密码(至少 6 位)"
                   class="w-full rounded-lg px-3 py-2 text-body-sm bg-brand-bg border border-brand-border text-on-surface
                          placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
-                <p v-if="pwdMsg" class="text-label-sm" :class="pwdOk ? 'text-green-400' : 'text-red-400'">{{ pwdMsg }}</p>
+                <p v-if="pwdMsg" class="text-label-sm text-center" :class="pwdOk ? 'text-green-400' : 'text-red-400'">{{ pwdMsg }}</p>
                 <div class="flex gap-2">
                   <button type="submit" :disabled="pwdLoading"
                     class="flex-1 py-1.5 rounded-lg text-body-sm font-medium bg-brand-accent text-on-primary
@@ -84,9 +86,16 @@
               </form>
             </template>
           </div>
-          <div class="px-2.5 pb-2.5">
+          <div class="px-2.5 pb-2.5 flex items-center justify-center gap-2">
             <button
-              class="w-full py-1.5 rounded-lg text-body-sm text-on-surface-variant
+              class="flex-1 py-1.5 rounded-lg text-body-sm text-on-surface-variant
+                     hover:text-on-surface hover:bg-surface-high/50 transition-colors"
+              @click="showChangePwd = true"
+            >
+              改密码
+            </button>
+            <button
+              class="flex-1 py-1.5 rounded-lg text-body-sm text-on-surface-variant
                      hover:text-on-surface hover:bg-surface-high/50 transition-colors"
               @click="handleLogout"
             >
@@ -285,6 +294,9 @@ const pwdForm = ref({ oldPassword: '', newPassword: '' })
 const pwdMsg = ref('')
 const pwdOk = ref(false)
 const pwdLoading = ref(false)
+
+// 剩余积分:占位值 —— 后续做计费体系时,按所选大模型的单价扣减并在这里变化
+const points = ref(100)
 
 // ── 会话管理(M3.2,登录用户才有) ──
 const conversations = ref<{ id: number; title: string }[]>([])
@@ -658,3 +670,22 @@ onUnmounted(() => {
   }
 })
 </script>
+
+<style scoped>
+/* 侧栏滚动条定制:默认 Windows 滚动条又宽又贴边,压细成 4px 半透明,
+   贴着内容滚动不抢视觉(「有一条线贴到右边」就是这个滚动条) */
+.sidebar-scroll {
+  scrollbar-width: thin;                    /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+</style>
