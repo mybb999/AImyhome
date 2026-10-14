@@ -36,8 +36,9 @@
             @click="selectConversation(c.id)"
           >
             <!-- 主会话标记:置顶 + 不可删(后端也拦);分支可删 -->
-            <span v-if="c.is_main" class="shrink-0 text-label-sm" title="主会话">📌</span>
-            <span class="truncate">{{ c.title || (c.is_main ? '主会话' : '新会话') }}</span>
+            <span v-if="c.is_main" class="shrink-0 text-label-sm" title="主对话">📌</span>
+            <!-- 主对话永远叫「主对话」,不看库里标题(用户 2026-10-14 定);分支才显示标题 -->
+            <span class="truncate">{{ c.is_main ? '主对话' : (c.title || '新会话') }}</span>
             <span
               v-if="!c.is_main"
               class="opacity-0 group-hover:opacity-100 text-on-surface-variant/50 hover:text-red-400 shrink-0"
