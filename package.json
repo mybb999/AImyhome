@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "nuxt dev",
@@ -14,7 +14,7 @@
     "preview": "nuxt preview"
   },
   "dependencies": {
-    "@nuxt/content": "2.13.0",
+    "@nuxt/content": "2.13.4",
     "@nuxt/image": "^2.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "highlight.js": "^11.11.1",
