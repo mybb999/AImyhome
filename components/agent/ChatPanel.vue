@@ -196,7 +196,7 @@
           </div>
 
           <button v-if="messages.length > 0" class="btn-ghost text-body-sm" :disabled="isStreaming" @click="clearChat">
-            清空对话
+            {{ confirmClear ? '确认清空?' : '清空对话' }}
           </button>
         </div>
       </div>
@@ -705,8 +705,23 @@ function checkScrollPosition() {
 }
 
 // ── Clear chat ──
-// 清空本页对话(游客纯前端清数组;登录用户清的是当前会话的消息区,历史仍在服务端)
-function clearChat() {
+// 游客:纯前端清数组;登录用户:先调服务端删 checkpointer 记忆再清本地
+// (线上踩坑:只清前端,刷新后历史从服务端复原,像「清不掉」)。
+// 破坏性操作加确认:第一次点变「确认清空?」,3 秒内再点才执行。
+const confirmClear = ref(false)
+let confirmClearTimer: ReturnType<typeof setTimeout> | null = null
+
+async function clearChat() {
+  if (!confirmClear.value) {
+    confirmClear.value = true
+    confirmClearTimer = setTimeout(() => { confirmClear.value = false }, 3000)
+    return
+  }
+  confirmClear.value = false
+  if (confirmClearTimer) {
+    clearTimeout(confirmClearTimer)
+    confirmClearTimer = null
+  }
   messages.value = []
   errorMessage.value = ''
   input.value = ''
@@ -714,6 +729,17 @@ function clearChat() {
   isThinking.value = false
   if (inputEl.value) {
     inputEl.value.style.height = 'auto'
+  }
+  // 登录用户:删服务端记忆(会话保留);失败也照清本地,下次再试
+  if (authUser.value && currentConversationId.value != null) {
+    try {
+      await fetch(`/api/conversations/${currentConversationId.value}/messages`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken.value}` },
+      })
+    } catch {
+      // 网络失败不阻塞本地清空
+    }
   }
 }
 
@@ -760,6 +786,9 @@ onUnmounted(() => {
   const el = messagesContainer.value
   if (el) {
     el.removeEventListener('scroll', checkScrollPosition)
+  }
+  if (confirmClearTimer) {
+    clearTimeout(confirmClearTimer)
   }
 })
 </script>
