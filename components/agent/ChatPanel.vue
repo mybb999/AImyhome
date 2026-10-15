@@ -487,6 +487,10 @@ const uploading = ref(false)
 const uploadOk = ref(false)
 const uploadMsg = ref('')
 
+// 解析服务地址:HTTPS 域名就绪(2026-10-15)后浏览器直传 —— 绕开 Vercel
+// 4.5MB 请求体上限,文件可到 25MB;跨域已由解析服务的 CORS 放行
+const PARSE_URL = 'https://agent.ai-myhome.space/api/parse'
+
 // 上传文档:解析服务(8001)解析成 Markdown,切片挂当前会话的临时库;
 // 解析完直接在对话里问,问题会命中 Agent 的 search_document 工具
 async function handleUpload(e: Event) {
@@ -506,7 +510,7 @@ async function handleUpload(e: Event) {
   uploadOk.value = false
   uploadMsg.value = ''
   try {
-    const res = await fetch('/api/parse', {
+    const res = await fetch(PARSE_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken.value}` },
       body: form,
