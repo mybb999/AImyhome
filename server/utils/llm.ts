@@ -32,20 +32,20 @@ const DOUBAO_MODEL = 'doubao-seed-2-0-lite-260215'
 /** 注册表。数组顺序 = 默认优先级(客户端不传 model 时,取第一个配了 key 的) */
 export const LLM_PROVIDERS: LLMProvider[] = [
   {
-    id: 'glm',
-    name: '智谱 GLM-4.7-Flash',
-    description: '永久免费 · 中文强',
-    baseURL: process.env.LLM_BASE_URL || DEFAULT_ZHIPU_BASE,
-    model: process.env.LLM_MODEL || DEFAULT_ZHIPU_MODEL,
-    apiKey: process.env.LLM_API_KEY,
-  },
-  {
     id: 'doubao',
     name: '豆包 Seed-2.0-Lite',
     description: '每日免费 200 万 · 低延迟',
     baseURL: DOUBAO_BASE,
     model: DOUBAO_MODEL,
     apiKey: process.env.DOUBAO_API_KEY,
+  },
+  {
+    id: 'glm',
+    name: '智谱 GLM-4.7-Flash',
+    description: '永久免费 · 中文强',
+    baseURL: process.env.LLM_BASE_URL || DEFAULT_ZHIPU_BASE,
+    model: process.env.LLM_MODEL || DEFAULT_ZHIPU_MODEL,
+    apiKey: process.env.LLM_API_KEY,
   },
 ]
 
