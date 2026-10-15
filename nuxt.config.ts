@@ -53,8 +53,11 @@ export default defineNuxtConfig({
   // SSR + Vercel deployment
   nitro: {
     preset: 'vercel',
+    // 2026-10-15:Vercel 构建环境的首页预渲染 500(itemKey/unstorage),本地永远复现不了;
+    // 预渲染只是「构建时烤好 HTML」的锦上添花,关掉后 Vercel 运行时 SSR 照常出页面。
+    // 想找回时:git revert 这个提交再排查,别在这里死磕。
     prerender: {
-      routes: ['/'],
+      routes: [],
     },
     // /api/agent 是 LLM 流式接口:回答要 15~30s,Vercel 免费版默认 10s 会掐死函数,提到上限 60s
     // (这个版本 nitro 只认 vercel.functions,不认 routeRules.maxDuration —— 已查过 nitro 源码)
