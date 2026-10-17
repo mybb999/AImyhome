@@ -266,6 +266,17 @@
             {{ uploadMsg }}
           </span>
         </div>
+        <!-- 记忆治理:上下文过长时提示压缩(手动按钮;超硬上限服务端自动兜底) -->
+        <div v-if="authUser && historyChars > 8000" class="mb-2 flex items-center gap-2">
+          <button
+            class="chip cursor-pointer hover:bg-surface-high/50 transition-colors disabled:opacity-50"
+            :disabled="compressing"
+            @click="compressContext"
+          >
+            {{ compressing ? '压缩中…' : '⚠ 压缩上下文' }}
+          </button>
+          <span v-if="compressMsg" class="text-label-sm text-on-surface-variant/70">{{ compressMsg }}</span>
+        </div>
         <div class="flex gap-2">
           <textarea ref="inputEl" v-model="input" class="flex-1 resize-none rounded-lg px-4 py-2.5 text-body-md
                    bg-brand-bg border border-brand-border
@@ -442,12 +453,8 @@ async function newConversation() {
   errorMessage.value = ''
 }
 
-// 切换会话:清空消息区 → 从服务端拉该会话的完整历史回填
-async function selectConversation(id: number) {
-  if (isStreaming.value || currentConversationId.value === id) return
-  currentConversationId.value = id
-  messages.value = []
-  errorMessage.value = ''
+// 从服务端拉会话完整历史回填消息区(切换会话/压缩后共用)
+async function loadHistory(id: number) {
   const res = await fetch(`/api/conversations/${id}/messages`, {
     headers: { Authorization: `Bearer ${authToken.value}` },
   })
@@ -461,6 +468,50 @@ async function selectConversation(id: number) {
   }))
   await nextTick()
   scrollToBottom()
+}
+
+// 切换会话:清空消息区 → 从服务端拉该会话的完整历史回填
+async function selectConversation(id: number) {
+  if (isStreaming.value || currentConversationId.value === id) return
+  currentConversationId.value = id
+  messages.value = []
+  errorMessage.value = ''
+  await loadHistory(id)
+}
+
+// ── 记忆治理(压缩上下文)──
+// 当前会话历史总字数(粗估 token:中文约 1 字 1 token);超 8000 字亮按钮
+const historyChars = computed(() =>
+  messages.value.reduce((n, m) => n + (m.content?.length || 0), 0)
+)
+const compressing = ref(false)
+const compressMsg = ref('')
+
+// 手动压缩:服务端把历史压成 200 字摘要 + 保留最近几轮,然后重载历史
+async function compressContext() {
+  if (!currentConversationId.value || compressing.value) return
+  compressing.value = true
+  compressMsg.value = ''
+  try {
+    const res = await fetch(`/api/conversations/${currentConversationId.value}/summarize`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(data?.detail || '压缩失败,请重试')
+    }
+    if (data.compressed) {
+      compressMsg.value = '已压缩:历史压成摘要,保留最近几轮'
+      await loadHistory(currentConversationId.value)
+    } else {
+      compressMsg.value = data.reason || '上下文还不够长'
+    }
+  } catch (err: any) {
+    compressMsg.value = err.message || '压缩失败,请重试'
+  } finally {
+    compressing.value = false
+  }
 }
 
 // 删除会话(只能删分支,主会话无删除入口且后端也拦):
