@@ -267,7 +267,7 @@
           </span>
         </div>
         <!-- 记忆治理:上下文过长时提示压缩(手动按钮;超硬上限服务端自动兜底) -->
-        <div v-if="authUser && historyChars > 8000" class="mb-2 flex items-center gap-2">
+        <div v-if="authUser && historyChars > historyThreshold" class="mb-2 flex items-center gap-2">
           <button
             class="chip cursor-pointer hover:bg-surface-high/50 transition-colors disabled:opacity-50"
             :disabled="compressing"
@@ -409,6 +409,7 @@ function handleLogout() {
   conversations.value = []
   currentConversationId.value = null
   messages.value = []
+  historyChars.value = 0
   errorMessage.value = ''
   input.value = ''
   showChangePwd.value = false
@@ -450,6 +451,7 @@ async function newConversation() {
   conversations.value.splice(1, 0, { id: data.id, title: '', is_main: false })
   currentConversationId.value = data.id
   messages.value = []
+  historyChars.value = 0
   errorMessage.value = ''
 }
 
@@ -466,6 +468,9 @@ async function loadHistory(id: number) {
     content: m.content,
     timestamp: Date.now(),
   }))
+  // 服务端口径的历史总字数 + 亮按钮阈值(压缩按钮按这个判断)
+  historyChars.value = data.chars ?? messages.value.reduce((n, m) => n + (m.content?.length || 0), 0)
+  if (data.threshold) historyThreshold.value = data.threshold
   await nextTick()
   scrollToBottom()
 }
@@ -475,15 +480,17 @@ async function selectConversation(id: number) {
   if (isStreaming.value || currentConversationId.value === id) return
   currentConversationId.value = id
   messages.value = []
+  historyChars.value = 0
   errorMessage.value = ''
   await loadHistory(id)
 }
 
 // ── 记忆治理(压缩上下文)──
-// 当前会话历史总字数(粗估 token:中文约 1 字 1 token);超 8000 字亮按钮
-const historyChars = computed(() =>
-  messages.value.reduce((n, m) => n + (m.content?.length || 0), 0)
-)
+// 当前会话历史总字数 + 亮按钮阈值。口径 = 服务端真实字数(含工具轮内容):
+// 加载历史/每轮结束时服务端返回,前端不自己数(按显示文字数会永远数不够,
+// 按钮基本不亮)。聊天中途本地先累加,等服务端每轮末尾的 chars 事件校正。
+const historyChars = ref(0)
+const historyThreshold = ref(20000)
 const compressing = ref(false)
 const compressMsg = ref('')
 
@@ -526,6 +533,7 @@ async function removeConversation(id: number) {
   if (currentConversationId.value === id) {
     currentConversationId.value = null
     messages.value = []
+    historyChars.value = 0
     const main = conversations.value.find(c => c.is_main)
     if (main) {
       selectConversation(main.id)
@@ -595,6 +603,8 @@ async function send() {
     timestamp: Date.now(),
   }
   messages.value.push(userMsg)
+  // 本地先累加字数(按钮实时感);服务端每轮末尾的 chars 事件会校正成真实值
+  historyChars.value += content.length
   input.value = ''
 
   // 空 assistant 占位消息:流式内容往里填
@@ -686,6 +696,9 @@ async function send() {
             if (messages.value[assistantIndex]) {
               messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
             }
+          } else if (currentEvent === 'chars') {
+            // 每轮结束:服务端真实历史字数(含工具轮内容),压缩按钮按它亮/灭
+            historyChars.value = parsed.chars || 0
           } else {
             const content = parsed.choices?.[0]?.delta?.content
             if (content && messages.value[assistantIndex]) {
@@ -774,6 +787,7 @@ async function clearChat() {
     confirmClearTimer = null
   }
   messages.value = []
+  historyChars.value = 0
   errorMessage.value = ''
   input.value = ''
   isStreaming.value = false
