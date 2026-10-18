@@ -43,17 +43,27 @@
       />
 
       <!-- Sources(RAG 命中来源,仅 assistant 消息)
+           默认折叠成一行,点开才看明细 —— 表格类文档切片很碎,
+           6 条命中全列出来像重复刷屏;同文件的章节也合并成一行。
            注意不显示 score:混合检索后它是 RRF 排序分,不是置信度,
            显示「相关度 2%」会误导访客,只展示文件名 + 章节 -->
       <div v-if="!isUser && message.sources?.length"
-        class="mt-2 pt-2 border-t border-brand-border space-y-1">
-        <p class="text-label-sm text-on-surface-variant/60">📎 参考资料</p>
-        <div
-          v-for="(s, i) in message.sources"
-          :key="i"
-          class="text-label-sm text-on-surface-variant/80 bg-surface-low px-2 py-1 rounded"
+        class="mt-2 pt-2 border-t border-brand-border">
+        <button
+          class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer"
+          @click="showSources = !showSources"
         >
-          <span class="text-brand-accent">{{ s.source }} · {{ s.section }}</span>
+          <span class="inline-block transition-transform" :class="showSources ? 'rotate-90' : ''">▸</span>
+          📎 参考资料 ({{ message.sources.length }})
+        </button>
+        <div v-if="showSources" class="mt-1 space-y-1">
+          <div
+            v-for="g in sourceGroups"
+            :key="g.file"
+            class="text-label-sm text-on-surface-variant/80 bg-surface-low px-2 py-1 rounded"
+          >
+            <span class="text-brand-accent">{{ g.file }}</span><template v-if="g.sections.length"> · {{ g.sections.join('、') }}</template><template v-if="g.more"> 等{{ g.more }}处</template>
+          </div>
         </div>
       </div>
 
@@ -86,6 +96,32 @@ const props = defineProps<{
 
 // 是不是用户发的:决定气泡靠左还是靠右、渲染纯文本还是 Markdown
 const isUser = computed(() => props.message.role === 'user')
+
+// 参考资料默认折叠,点开才看明细(每个消息气泡自己记自己的展开态)
+const showSources = ref(false)
+
+// 参考资料分组:按文件名合并,同文件去重章节;每文件最多显示前 3 个章节,
+// 超出的记进 more(显示「等 N 处」)。碎切片文档(登记表)不会再刷屏
+const sourceGroups = computed(() => {
+  const groups = new Map<string, { sections: string[]; total: number }>()
+  for (const s of props.message.sources || []) {
+    let g = groups.get(s.source)
+    if (!g) {
+      g = { sections: [], total: 0 }
+      groups.set(s.source, g)
+    }
+    const sec = (s.section || '').trim()
+    if (sec && !g.sections.includes(sec)) {
+      g.total++
+      if (g.sections.length < 3) g.sections.push(sec)
+    }
+  }
+  return [...groups.entries()].map(([file, g]) => ({
+    file,
+    sections: g.sections,
+    more: g.total > g.sections.length ? g.total - g.sections.length : 0,
+  }))
+})
 
 // 时间戳 → 显示用时间(今天只显示时分,跨天带日期)
 const formattedTime = computed(() => {
