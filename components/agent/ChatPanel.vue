@@ -266,9 +266,13 @@
             {{ uploadMsg }}
           </span>
         </div>
-        <!-- 记忆治理:上下文过长时提示压缩(手动按钮;超硬上限服务端自动兜底) -->
-        <div v-if="authUser && historyChars > historyThreshold" class="mb-2 flex items-center gap-2">
+        <!-- 记忆治理:上下文过长时提示压缩(手动按钮;超硬上限服务端自动兜底)。
+             字数超过 5000 就显示计数(用户能看着它涨到阈值),超阈值再亮按钮;
+             压缩反馈(compressMsg)单独算显示条件,压完字数掉下来也还能看到 -->
+        <div v-if="authUser && (historyChars > 5000 || compressMsg)" class="mb-2 flex items-center gap-2">
+          <span v-if="historyChars > 5000" class="text-label-sm text-on-surface-variant/70">📊 上下文 {{ historyChars }} 字</span>
           <button
+            v-if="historyChars > historyThreshold"
             class="chip cursor-pointer hover:bg-surface-high/50 transition-colors disabled:opacity-50"
             :disabled="compressing"
             @click="compressContext"
