@@ -54,7 +54,7 @@
           @click="showSources = !showSources"
         >
           <span class="inline-block transition-transform" :class="showSources ? 'rotate-90' : ''">▸</span>
-          📎 参考资料 ({{ message.sources.length }})
+          📎 参考资料 ({{ sourceGroups.length }})
         </button>
         <div v-if="showSources" class="mt-1 space-y-1">
           <div
