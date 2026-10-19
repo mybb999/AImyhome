@@ -404,6 +404,11 @@ function handleLogout() {
   historyChars.value = 0
   errorMessage.value = ''
   input.value = ''
+  // 上传/压缩的会话反馈也清掉:否则换账号登录后还显示上一账号
+  // 的「《xxx》解析完成」文件名(线上踩坑:泄露上一账号的文档名)
+  uploadMsg.value = ''
+  uploadOk.value = false
+  compressMsg.value = ''
   showChangePwd.value = false
   pwdForm.value = { oldPassword: '', newPassword: '' }
   pwdMsg.value = ''
