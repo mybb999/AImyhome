@@ -116,22 +116,10 @@
       </template>
 
       <template v-else>
-        <!-- 未登录:登录/注册表单(窄窗口下也允许滚动) -->
+        <!-- 未登录:登录表单(注册入口已关闭 2026-10-19,前后端都关:
+             只藏按钮挡不住 XSS 注入,后端 /api/auth/register 也返回 403) -->
         <div class="p-3 flex-1 overflow-y-auto">
           <p class="text-body-sm font-medium text-on-surface text-center">会员</p>
-
-          <div class="mt-3 flex rounded-lg overflow-hidden border border-brand-border text-label-sm">
-            <button
-              class="flex-1 py-1.5 transition-colors"
-              :class="authMode === 'login' ? 'bg-brand-accent/15 text-brand-accent font-medium' : 'text-on-surface-variant'"
-              @click="authMode = 'login'"
-            >登录</button>
-            <button
-              class="flex-1 py-1.5 transition-colors"
-              :class="authMode === 'register' ? 'bg-brand-accent/15 text-brand-accent font-medium' : 'text-on-surface-variant'"
-              @click="authMode = 'register'"
-            >注册</button>
-          </div>
 
           <form class="mt-3 space-y-2" @submit.prevent="handleAuthSubmit">
             <input v-model="authForm.username" type="text" placeholder="用户名"
@@ -144,7 +132,7 @@
             <button type="submit" :disabled="authLoading"
               class="w-full py-2 rounded-lg text-body-sm font-semibold bg-brand-accent text-on-primary
                      hover:bg-brand-accent-strong disabled:opacity-40 transition-all">
-              {{ authLoading ? '请稍候…' : (authMode === 'login' ? '登录' : '注册并登录') }}
+              {{ authLoading ? '请稍候…' : '登录' }}
             </button>
           </form>
         </div>
