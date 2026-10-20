@@ -409,6 +409,8 @@ function handleLogout() {
   uploadMsg.value = ''
   uploadOk.value = false
   compressMsg.value = ''
+  // 登录表单也清空:否则退出后账号密码还填着,换账号要先手动删(E2E 实测发现)
+  authForm.value = { username: '', password: '' }
   showChangePwd.value = false
   pwdForm.value = { oldPassword: '', newPassword: '' }
   pwdMsg.value = ''
