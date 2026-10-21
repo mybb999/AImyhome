@@ -3,32 +3,48 @@
     <!-- Header -->
     <div class="mb-5">
       <h2 class="text-headline-md text-on-surface flex items-center gap-2">
-        <span>📝</span>
-        <span>所有文章</span>
+        <span>📚</span>
+        <span>文集</span>
       </h2>
     </div>
 
-    <!-- Article list -->
+    <!-- Collection nav -->
     <nav class="flex-1 overflow-y-auto">
-      <ul v-if="posts.length > 0" class="space-y-0.5">
-        <li v-for="post in posts" :key="post.id">
+      <ul class="space-y-0.5">
+        <!-- All posts -->
+        <li>
           <NuxtLink
-            :to="`/blog/${post.slug}`"
-            class="block py-2 px-3 rounded-lg text-body-md transition-all duration-150"
-            :class="$route.params.slug === post.slug
+            to="/blog"
+            class="flex items-center justify-between gap-2 py-2 px-3 rounded-lg text-body-md transition-all duration-150"
+            :class="isAllActive
               ? 'text-brand-accent bg-brand-accent/10 border-l-2 border-brand-accent'
               : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50 border-l-2 border-transparent'"
           >
-            <div class="font-medium truncate">{{ post.title }}</div>
-            <div class="flex items-center gap-3 mt-1 text-label-md text-on-surface-variant/60">
-              <span>{{ formatDate(post.date) }}</span>
-              <span>{{ post.readingTime }} min</span>
-            </div>
+            <span class="font-medium truncate">全部文章</span>
+            <span class="text-label-md text-on-surface-variant/60 shrink-0">{{ total }}</span>
+          </NuxtLink>
+        </li>
+
+        <!-- Collections -->
+        <li v-for="c in collections" :key="c.slug">
+          <NuxtLink
+            :to="`/blog/collection/${c.slug}`"
+            class="flex items-center justify-between gap-2 py-2 px-3 rounded-lg text-body-md transition-all duration-150"
+            :class="isActive(c.slug)
+              ? 'text-brand-accent bg-brand-accent/10 border-l-2 border-brand-accent'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50 border-l-2 border-transparent'"
+          >
+            <span class="flex items-center gap-2 min-w-0">
+              <span class="shrink-0">{{ c.icon }}</span>
+              <span class="font-medium truncate">{{ c.name }}</span>
+            </span>
+            <span class="text-label-md text-on-surface-variant/60 shrink-0">{{ c.count }}</span>
           </NuxtLink>
         </li>
       </ul>
-      <p v-else class="text-body-md text-on-surface-variant py-4">
-        暂无文章
+
+      <p v-if="!collections.length" class="text-body-md text-on-surface-variant py-4">
+        暂无文集
       </p>
     </nav>
 
@@ -40,20 +56,26 @@
         </svg>
         返回首页
       </NuxtLink>
-      <!-- <ResumeButton /> -->
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { BlogListItem } from '~/types/blog'
+import type { BlogCollectionWithCount } from '~/types/blog'
 
-const { data: posts } = useFetch<BlogListItem[]>('/api/blog', {
+const route = useRoute()
+
+// Non-blocking fetch: the sidebar renders immediately, counts fill in when ready.
+const { data } = useFetch<BlogCollectionWithCount[]>('/api/collections', {
   default: () => [],
 })
 
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}-${d.getDate()}`
+const collections = computed(() => data.value || [])
+const total = computed(() => collections.value.reduce((sum, c) => sum + c.count, 0))
+
+const isAllActive = computed(() => route.path === '/blog')
+
+function isActive(slug: string) {
+  return route.path === `/blog/collection/${slug}`
 }
 </script>

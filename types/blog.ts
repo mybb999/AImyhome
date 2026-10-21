@@ -1,39 +1,37 @@
 /** Blog-related TypeScript interfaces */
 
-export interface BlogPost {
-  id: string
+/** A curated collection (文集) that groups related posts. */
+export interface BlogCollection {
   slug: string
-  title: string
+  name: string
+  icon: string
+  order: number
   description: string
-  date: string
-  readingTime: number // in minutes
-  tags: string[]
-  coverImage?: string
-  content: string // raw markdown
-  published: boolean
 }
 
+/** Collection enriched with its article count at request time. */
+export interface BlogCollectionWithCount extends BlogCollection {
+  count: number
+}
+
+/** List-friendly summary of a blog post. */
 export interface BlogListItem {
-  id: string
   slug: string
   title: string
   description: string
   date: string
   readingTime: number
   tags: string[]
-  coverImage?: string
+  /** Collection slug this post belongs to. */
+  collection: string
+  /** Resolved collection metadata for display. */
+  collectionName?: string
+  collectionIcon?: string
+  originalUrl?: string
 }
 
-/** Convert full BlogPost to list-friendly summary */
-export function toBlogListItem(post: BlogPost): BlogListItem {
-  return {
-    id: post.id,
-    slug: post.slug,
-    title: post.title,
-    description: post.description,
-    date: post.date,
-    readingTime: post.readingTime,
-    tags: post.tags,
-    coverImage: post.coverImage,
-  }
+/** Full blog post, including rendered body and raw markdown. */
+export interface BlogPost extends BlogListItem {
+  body?: unknown
+  wordage?: number
 }

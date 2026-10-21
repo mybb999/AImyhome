@@ -2,12 +2,19 @@
   <article v-if="data" class="space-y-6">
     <!-- Article header -->
     <header class="space-y-4">
-      <!-- Tags -->
-      <div v-if="data.tags?.length" class="flex flex-wrap gap-2">
+      <!-- Collection + tags -->
+      <div class="flex flex-wrap gap-2">
+        <NuxtLink
+          v-if="collectionMeta"
+          :to="`/blog/collection/${data.collection}`"
+          class="chip-accent text-label-md hover:bg-brand-accent/20 transition-colors"
+        >
+          {{ collectionMeta.icon }} {{ collectionMeta.name }}
+        </NuxtLink>
         <span
           v-for="tag in data.tags"
           :key="tag"
-          class="chip-accent text-label-md"
+          class="chip text-label-md"
         >
           #{{ tag }}
         </span>
@@ -64,13 +71,24 @@
     <div class="divider" />
 
     <!-- Share / back -->
-    <div class="flex items-center justify-between">
-      <a href="/" class="btn-ghost text-body-md">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <NuxtLink to="/blog" class="btn-ghost text-body-md">
         ← 返回博客列表
-      </a>
-      <span class="text-label-md text-on-surface-variant">
-        Thanks for reading 🎉
-      </span>
+      </NuxtLink>
+      <div class="flex items-center gap-4">
+        <a
+          v-if="data.originalUrl"
+          :href="data.originalUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-label-md text-on-surface-variant hover:text-brand-accent transition-colors"
+        >
+          原文发表于简书 ↗
+        </a>
+        <span class="text-label-md text-on-surface-variant">
+          Thanks for reading 🎉
+        </span>
+      </div>
     </div>
   </article>
 
@@ -96,11 +114,18 @@
 </template>
 
 <script setup lang="ts">
+import { collectionMap } from '~/data/collections'
+
 const props = defineProps<{
   data: any | null
   pending?: boolean
   readingTime?: number
 }>()
+
+const collectionMeta = computed(() => {
+  const slug = props.data?.collection
+  return slug ? collectionMap.get(slug) : undefined
+})
 
 const formattedDate = computed(() => {
   if (!props.data?.date) return ''

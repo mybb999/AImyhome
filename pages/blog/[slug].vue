@@ -26,6 +26,12 @@ const { data, pending } = await useAsyncData(`blog-${slug.value}`, async () => {
   }
 });
 
+// Keep the friendly not-found card, but report the correct status to crawlers.
+if (!data.value) {
+  const event = useRequestEvent();
+  if (event) setResponseStatus(event, 404);
+}
+
 const toc = computed<TocItem[]>(() => {
   if (!data.value?.body?.toc?.links) return [];
   return data.value.body.toc.links.map((link: any) => ({
@@ -37,6 +43,7 @@ const toc = computed<TocItem[]>(() => {
 
 const readingTime = computed(() => {
   if (!data.value) return 0;
+  if (data.value.readingTime) return data.value.readingTime;
   const text = data.value.description || "";
   const bodyText = data.value.body ? JSON.stringify(data.value.body) : "";
   return Math.max(1, Math.ceil((text.length + bodyText.length) / 200));

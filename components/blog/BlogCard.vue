@@ -6,8 +6,16 @@
     @click="$emit('click')"
   >
     <div class="space-y-3">
-      <!-- Meta row: date + reading time -->
-      <div class="flex items-center gap-4 text-label-md text-on-surface-variant">
+      <!-- Meta row: collection + date + reading time -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-label-md text-on-surface-variant">
+        <NuxtLink
+          v-if="post.collection"
+          :to="`/blog/collection/${post.collection}`"
+          class="chip-accent text-label-md hover:bg-brand-accent/20 transition-colors"
+          @click.stop
+        >
+          {{ post.collectionIcon }} {{ post.collectionName }}
+        </NuxtLink>
         <span class="flex items-center gap-1.5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>

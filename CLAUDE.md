@@ -12,6 +12,7 @@
 | 设计规范 | `docs/DESIGN.md` | Midnight Slate 设计系统（色板/字体/间距/组件） |
 | 实施计划 | `C:\Users\Administrator\.claude\plans\vue3-2-screen1-png-screen2-png-radiant-yeti.md` | 分步执行计划 |
 | 技术架构 | `docs/ARCHITECTURE.md` | 技术选型与项目结构 |
+| 文集定义 | `data/collections.ts` | 11 个文集（分类）的唯一数据源 |
 | 开发日志 | `devlog/YYYY-MM-DD.md` | 每日开发记录 |
 | 日志模板 | `devlog/TEMPLATE.md` | 新建日志模板 |
 
@@ -27,7 +28,9 @@
 - 所有含逻辑的 Vue 组件使用 `<script setup lang="ts">` + Composition API；纯展示组件（仅模板）可省略 script 块
 - 类型定义统一放在 `types/` 目录
 - API 接口放在 `server/api/` 目录
-- 博客文章 Markdown 放在 `content/blog/` 目录
+- 博客文章 Markdown 放在 `content/blog/` 目录，frontmatter 必填字段：`title` / `description` / `date` / `collection` / `tags` / `readingTime` / `originalUrl`
+- `collection` 必须取自 `data/collections.ts` 中的 slug；新增文集只改这个文件
+- 正文里出现 `{{` / `}}` 需转义（`\{\{`），否则会被 Nuxt Content 当作 Vue 绑定解析导致构建失败
 - 使用 Tailwind 类名，避免行内样式
 - 色板使用 `docs/DESIGN.md` 中定义的语义化 Token（如 `bg-brand-bg`、`text-brand-accent`）
 

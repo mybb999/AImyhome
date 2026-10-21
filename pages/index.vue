@@ -5,7 +5,13 @@
     </template>
 
     <div class="space-y-6 lg:space-y-8">
-      <BlogList :posts="posts" :loading="pending" />
+      <BlogList
+        :posts="posts"
+        :loading="pending"
+        :initial-count="6"
+        :total="posts.length"
+        more-link="/blog"
+      />
       <Guestbook />
     </div>
   </AppShell>
