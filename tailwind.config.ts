@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import typography from '@tailwindcss/typography'
 
 export default <Config>{
   content: [
@@ -139,5 +140,6 @@ export default <Config>{
       },
     },
   },
-  plugins: [],
+  // 文章正文的 prose / prose-pre 等类名依赖这个插件，缺了它们全是空类名
+  plugins: [typography],
 }
