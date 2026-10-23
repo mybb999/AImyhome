@@ -198,7 +198,7 @@
             你好！我是 熊仔 的 AI 助手
           </p>
           <p class="mt-2 text-body-md text-on-surface-variant max-w-md">
-            由智谱 GLM-4.7-Flash / 豆包 Seed-2.0-Lite 双模型驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
+            由智谱 GLM-4.7-Flash / 豆包 Seed-2.1-Lite 双模型驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
           </p>
         </div>
 
@@ -687,26 +687,36 @@ async function send() {
           break
         }
 
+        let parsed: any
         try {
-          const parsed = JSON.parse(data)
-          if (currentEvent === 'sources') {
-            // 来源事件 → 挂到当前 assistant 消息,不追加正文
-            // (存在性检查:流没结束就退出登录时,消息已被清空,别再往空数组写)
-            if (messages.value[assistantIndex]) {
-              messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
-            }
-          } else if (currentEvent === 'chars') {
-            // 每轮结束:服务端真实历史字数(含工具轮内容),压缩按钮按它亮/灭
-            historyChars.value = parsed.chars || 0
-          } else {
-            const content = parsed.choices?.[0]?.delta?.content
-            if (content && messages.value[assistantIndex]) {
-              messages.value[assistantIndex].content += content
-              scrollToBottom()
-            }
-          }
+          parsed = JSON.parse(data)
         } catch {
           // 解析不了的行(如心跳注释)跳过
+          currentEvent = ''
+          continue
+        }
+
+        // 后端流中途失败:以 {"error":{"message":"..."}} 收尾。
+        // 抛给外层 catch → 删掉空占位气泡 + 顶部红色横幅
+        if (parsed?.error) {
+          throw new Error(parsed.error.message || '生成失败，请重试')
+        }
+
+        if (currentEvent === 'sources') {
+          // 来源事件 → 挂到当前 assistant 消息,不追加正文
+          // (存在性检查:流没结束就退出登录时,消息已被清空,别再往空数组写)
+          if (messages.value[assistantIndex]) {
+            messages.value[assistantIndex].sources = parsed.items || [] as SourceItem[]
+          }
+        } else if (currentEvent === 'chars') {
+          // 每轮结束:服务端真实历史字数(含工具轮内容),压缩按钮按它亮/灭
+          historyChars.value = parsed.chars || 0
+        } else {
+          const content = parsed.choices?.[0]?.delta?.content
+          if (content && messages.value[assistantIndex]) {
+            messages.value[assistantIndex].content += content
+            scrollToBottom()
+          }
         }
         currentEvent = ''   // 事件块结束,重置
       }

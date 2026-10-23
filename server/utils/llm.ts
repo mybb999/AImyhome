@@ -27,13 +27,13 @@ export interface LLMProvider {
 const DEFAULT_ZHIPU_BASE = 'https://open.bigmodel.cn/api/paas/v4'
 const DEFAULT_ZHIPU_MODEL = 'glm-4.7-flash'
 const DOUBAO_BASE = 'https://ark.cn-beijing.volces.com/api/v3'
-const DOUBAO_MODEL = 'doubao-seed-2-0-lite-260215'
+const DOUBAO_MODEL = 'doubao-seed-2-1-lite-260915'
 
 /** 注册表。数组顺序 = 默认优先级(客户端不传 model 时,取第一个配了 key 的) */
 export const LLM_PROVIDERS: LLMProvider[] = [
   {
     id: 'doubao',
-    name: '豆包 Seed-2.0-Lite',
+    name: '豆包 Seed-2.1-Lite',
     description: '每日免费 200 万 · 低延迟',
     baseURL: DOUBAO_BASE,
     model: DOUBAO_MODEL,
