@@ -1,10 +1,10 @@
 <template>
   <AppShell>
     <template #sidebar>
-      <BlogToc :toc="toc" />
+      <BlogToc :toc="toc" :back-to="backTo" />
     </template>
 
-    <BlogContent :data="data" :pending="pending" :reading-time="readingTime" />
+    <BlogContent :data="data" :pending="pending" :reading-time="readingTime" :back-to="backTo" />
   </AppShell>
 </template>
 
@@ -13,6 +13,15 @@ import type { TocItem } from "~/components/blog/BlogToc.vue";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
+
+// 返回目标 = 进入文章前的列表页（全部文章或某个文集）。
+// 只在客户端读取 sessionStorage，避免 SSR 与客户端渲染不一致。
+const { peek } = useBlogOrigin();
+const backTo = ref("/blog");
+onMounted(() => {
+  const origin = peek();
+  if (origin?.path) backTo.value = origin.path;
+});
 
 const { data, pending } = await useAsyncData(`blog-${slug.value}`, async () => {
   try {

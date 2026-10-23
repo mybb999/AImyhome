@@ -8,8 +8,8 @@
       <BlogList
         :posts="posts"
         :loading="pending"
+        :total="total"
         :initial-count="6"
-        :total="posts.length"
         more-link="/blog"
       />
       <Guestbook />
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import type { BlogListItem } from '~/types/blog'
+import type { BlogListResponse } from '~/types/blog'
 
 useHead({
   title: 'Lucas Space — 个人网站',
@@ -27,9 +27,12 @@ useHead({
   ],
 })
 
-const { data, pending } = useFetch<BlogListItem[]>('/api/blog', {
-  default: () => [],
+// 首页只取 6 篇，避免把全部 204 篇的元数据塞进首屏 payload
+const { data, pending } = useFetch<BlogListResponse>('/api/blog', {
+  query: { limit: 6 },
+  default: () => ({ items: [], total: 0 }),
 })
 
-const posts = computed(() => data.value || [])
+const posts = computed(() => data.value?.items || [])
+const total = computed(() => data.value?.total || 0)
 </script>

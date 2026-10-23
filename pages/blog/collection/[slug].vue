@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import type { BlogCollectionWithCount, BlogListItem } from '~/types/blog'
+import type { BlogCollectionWithCount, BlogListResponse } from '~/types/blog'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -45,12 +45,12 @@ if (!collection.value) {
   throw createError({ statusCode: 404, statusMessage: '文集不存在' })
 }
 
-const { data: postsData, pending } = await useFetch<BlogListItem[]>('/api/blog', {
+const { data: postsData, pending } = await useFetch<BlogListResponse>('/api/blog', {
   query: { collection: slug },
-  default: () => [],
+  default: () => ({ items: [], total: 0 }),
 })
 
-const posts = computed(() => postsData.value || [])
+const posts = computed(() => postsData.value?.items || [])
 
 useHead({
   title: computed(() =>

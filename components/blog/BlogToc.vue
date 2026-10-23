@@ -38,13 +38,13 @@
     <div class="mt-5 pt-4 border-t border-brand-border space-y-3">
       <!-- Back to blog list -->
       <NuxtLink
-        to="/blog"
+        :to="backTo"
         class="btn-ghost w-full"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
         </svg>
-        返回博客
+        返回博客列表
       </NuxtLink>
 
       <!-- Resume download (disabled) -->
@@ -60,9 +60,13 @@ export interface TocItem {
   depth: number
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   toc: TocItem[]
-}>()
+  /** 返回目标：进入文章前的列表页，默认全部文章 */
+  backTo?: string
+}>(), {
+  backTo: '/blog',
+})
 
 const activeId = ref<string>('')
 

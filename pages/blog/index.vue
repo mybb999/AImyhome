@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import type { BlogListItem } from '~/types/blog'
+import type { BlogListResponse } from '~/types/blog'
 
 useHead({
   title: '博客中心 — Lucas Space',
@@ -20,9 +20,9 @@ useHead({
   ],
 })
 
-const { data, pending } = useFetch<BlogListItem[]>('/api/blog', {
-  default: () => [],
+const { data, pending } = useFetch<BlogListResponse>('/api/blog', {
+  default: () => ({ items: [], total: 0 }),
 })
 
-const posts = computed(() => data.value || [])
+const posts = computed(() => data.value?.items || [])
 </script>

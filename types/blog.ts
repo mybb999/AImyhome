@@ -35,3 +35,10 @@ export interface BlogPost extends BlogListItem {
   body?: unknown
   wordage?: number
 }
+
+/** Paginated list response from `/api/blog`. */
+export interface BlogListResponse {
+  items: BlogListItem[]
+  /** Total number of posts matching the query, ignoring limit/offset. */
+  total: number
+}

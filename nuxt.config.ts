@@ -50,6 +50,13 @@ export default defineNuxtConfig({
     },
   },
 
+  // 文章内容变化频率低：列表/文集接口走 CDN 缓存，避免每次导航都重新查询全部文章。
+  // 代价是发布新文章后最多 5 分钟才出现在列表里。
+  routeRules: {
+    '/api/blog': { swr: 300 },
+    '/api/collections': { swr: 300 },
+  },
+
   // SSR + Vercel deployment
   nitro: {
     preset: 'vercel',

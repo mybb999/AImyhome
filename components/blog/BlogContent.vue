@@ -72,7 +72,7 @@
 
     <!-- Share / back -->
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <NuxtLink to="/blog" class="btn-ghost text-body-md">
+      <NuxtLink :to="backTo" class="btn-ghost text-body-md">
         ← 返回博客列表
       </NuxtLink>
       <div class="flex items-center gap-4">
@@ -109,18 +109,22 @@
   <div v-else class="card text-center py-16 space-y-4">
     <p class="text-headline-md text-on-surface">文章未找到</p>
     <p class="text-body-md text-on-surface-variant">请检查链接是否正确</p>
-    <a href="/blog" class="btn-primary inline-flex">返回博客</a>
+    <NuxtLink :to="backTo" class="btn-primary inline-flex">返回博客列表</NuxtLink>
   </div>
 </template>
 
 <script setup lang="ts">
 import { collectionMap } from '~/data/collections'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   data: any | null
   pending?: boolean
   readingTime?: number
-}>()
+  /** 返回目标：进入文章前的列表页，默认全部文章 */
+  backTo?: string
+}>(), {
+  backTo: '/blog',
+})
 
 const collectionMeta = computed(() => {
   const slug = props.data?.collection

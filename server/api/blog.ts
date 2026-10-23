@@ -1,14 +1,15 @@
 /**
  * Blog API — serves the post list and individual posts from `content/blog/`.
  *
- * GET /api/blog                  → all posts (newest first)
- * GET /api/blog?collection=vue   → posts in one collection
- * GET /api/blog?id=<slug>        → a single post with rendered body
+ * GET /api/blog                       → all posts (newest first)
+ * GET /api/blog?collection=vue        → posts in one collection
+ * GET /api/blog?limit=6&offset=0      → paginated slice, plus the total count
+ * GET /api/blog?id=<slug>             → a single post with rendered body
  */
 
 import { serverQueryContent } from '#content/server'
 import { collectionMap } from '~/data/collections'
-import type { BlogListItem } from '~/types/blog'
+import type { BlogListItem, BlogListResponse } from '~/types/blog'
 
 /** Derive the public slug from a content document's path. */
 function slugOf(doc: any): string {
@@ -35,6 +36,8 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const id = query.id as string | undefined
   const collection = query.collection as string | undefined
+  const limit = Number(query.limit) || 0
+  const offset = Number(query.offset) || 0
 
   // Single post (with body) — used as a fallback by the detail page.
   if (id) {
@@ -56,5 +59,9 @@ export default defineEventHandler(async (event) => {
     .sort({ date: -1 })
     .find()
 
-  return docs.map(toListItem)
+  const items = docs.map(toListItem)
+  const total = items.length
+  const page = limit ? items.slice(offset, offset + limit) : items.slice(offset)
+
+  return { items: page, total } satisfies BlogListResponse
 })
