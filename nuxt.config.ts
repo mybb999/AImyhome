@@ -50,10 +50,11 @@ export default defineNuxtConfig({
     },
   },
 
-  // 文章内容变化频率低：列表/文集接口走 CDN 缓存，避免每次导航都重新查询全部文章。
-  // 代价是发布新文章后最多 5 分钟才出现在列表里。
+  // 注意：Vercel 的 ISR（swr）只按**路径**缓存，忽略查询字符串。
+  // /api/blog 依赖 collection / id / limit 等查询参数区分结果，一旦开启 swr，
+  // 所有变体会共享同一份缓存 —— 文集页会串成全部文章，详情页也拿不到单篇。
+  // 因此这里只缓存没有查询参数的 /api/collections。
   routeRules: {
-    '/api/blog': { swr: 300 },
     '/api/collections': { swr: 300 },
   },
 
