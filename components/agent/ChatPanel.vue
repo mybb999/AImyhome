@@ -165,6 +165,8 @@
             >
               <span class="status-dot" />
               <span>{{ currentModelName }}</span>
+              <span v-if="selectedModel.startsWith('dzmm:') && currentCardName"
+                class="text-label-sm text-on-surface-variant/60">· {{ currentCardName }}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9" />
               </svg>
@@ -207,11 +209,11 @@
                       :class="selectedCardId === c.id
                         ? 'bg-brand-accent/15 text-brand-accent'
                         : 'hover:bg-surface-high/50'"
-                      @click="selectCard(c.id)"
+                      @click="openCard(c)"
                     >
                       {{ c.name }}
                     </button>
-                    <button class="chip text-label-sm hover:bg-surface-high/50" @click="showCardForm = true">
+                    <button class="chip text-label-sm hover:bg-surface-high/50" @click="openNewCard">
                       ＋ 新建
                     </button>
                   </div>
@@ -225,14 +227,22 @@
                       v-for="m in cardModels"
                       :key="m.id"
                       class="w-full text-left px-3 py-1.5 rounded-lg transition-colors"
-                      :class="selectedModel === `dzmm:${m.id}`
-                        ? 'text-brand-accent bg-brand-accent/10'
-                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50'"
-                      @click="selectModel(`dzmm:${m.id}`)"
+                      :class="[
+                        selectedModel === `dzmm:${m.id}`
+                          ? 'text-brand-accent bg-brand-accent/10'
+                          : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50',
+                        m.available === false ? 'opacity-40 cursor-not-allowed' : '',
+                      ]"
+                      :disabled="m.available === false"
+                      @click="m.available !== false && selectModel(`dzmm:${m.id}`)"
                     >
-                      <div class="text-body-sm font-medium">{{ m.name }}</div>
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="text-body-sm font-medium">{{ m.name }}</div>
+                        <span v-if="m.available === false" class="text-label-sm text-red-400/80">不可用</span>
+                      </div>
                       <div class="text-label-sm text-on-surface-variant/60">
                         {{ m.id }}<template v-if="m.context_window"> · {{ Math.round(m.context_window / 1000) }}K</template>
+                        <template v-if="m.available === false && m.reason"> · {{ m.reason }}</template>
                       </div>
                     </button>
                   </div>
@@ -360,7 +370,7 @@
   <div v-if="showCardForm" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
     @click.self="showCardForm = false">
     <div class="w-full max-w-lg card p-5 max-h-[85vh] overflow-y-auto">
-      <h3 class="text-headline-md text-on-surface">新建角色卡</h3>
+      <h3 class="text-headline-md text-on-surface">{{ editingCardId ? '角色卡详情 / 编辑' : '新建角色卡' }}</h3>
       <p class="mt-1 text-label-sm text-on-surface-variant/60">这些设定会随每次对话发给角色卡模型</p>
       <div class="mt-4 space-y-3">
         <div>
@@ -369,7 +379,7 @@
             class="w-full rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
         </div>
         <div>
-          <label class="block text-label-sm text-on-surface-variant mb-1">背景描述</label>
+          <label class="block text-label-sm text-on-surface-variant mb-1">背景描述 *</label>
           <textarea v-model="cardForm.description" rows="2" placeholder="她是谁、和用户是什么关系"
             class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
         </div>
@@ -384,7 +394,7 @@
             class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
         </div>
         <div>
-          <label class="block text-label-sm text-on-surface-variant mb-1">开场白</label>
+          <label class="block text-label-sm text-on-surface-variant mb-1">开场白 *</label>
           <textarea v-model="cardForm.first_message" rows="2" placeholder="怎么这时候还没睡？"
             class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
         </div>
@@ -398,8 +408,8 @@
       <div class="mt-4 flex justify-end gap-2">
         <button class="btn-ghost text-body-sm" @click="showCardForm = false">取消</button>
         <button class="chip bg-brand-accent text-on-primary disabled:opacity-40"
-          :disabled="cardSaving || !cardForm.name.trim()" @click="createCard">
-          {{ cardSaving ? '保存中…' : '保存' }}
+          :disabled="cardSaving || !cardFormValid" @click="saveCard">
+          {{ cardSaving ? '保存中…' : (editingCardId ? '保存修改' : '保存') }}
         </button>
       </div>
     </div>
@@ -493,7 +503,13 @@ const selectedModel = ref('')
 const showModelMenu = ref(false)
 // 角色卡模型(DZMM):只有 lucas 能拉到列表,其他人 403 → 不显示级联菜单。
 // 选中值用「dzmm:<模型id>」前缀,后端按前缀路由到角色卡接口。
-interface CardModel { id: string; name: string; context_window?: number }
+interface CardModel {
+  id: string
+  name: string
+  context_window?: number
+  available?: boolean
+  reason?: string
+}
 const cardModels = ref<CardModel[]>([])
 const showCardMenu = ref(false)
 
@@ -510,6 +526,7 @@ interface RoleCard {
 const roleCards = ref<RoleCard[]>([])
 const selectedCardId = ref<number | null>(null)
 const showCardForm = ref(false)
+const editingCardId = ref<number | null>(null)   // null = 新建;有值 = 编辑
 const cardSaving = ref(false)
 const cardError = ref('')
 const emptyCardForm = () => ({
@@ -517,6 +534,10 @@ const emptyCardForm = () => ({
   scenario: '', first_message: '', system_prompt: '',
 })
 const cardForm = ref(emptyCardForm())
+// 当前选中的卡名(显示在模型按钮上,让用户知道用的是哪张卡)
+const currentCardName = computed(() =>
+  roleCards.value.find(c => c.id === selectedCardId.value)?.name || ''
+)
 
 // 当前选中模型的中文名,显示在顶栏切换按钮上
 const currentModelName = computed(() => {
@@ -921,6 +942,8 @@ async function send() {
       messages.value.splice(assistantIndex, 1)
     }
     errorMessage.value = err.message || '生成失败，请重试'
+    // 角色卡模型失败:刷新可用性标记(后端会把 429/5xx 记进模型状态)
+    if (selectedModel.value.startsWith('dzmm:')) fetchCardModels()
   } finally {
     isStreaming.value = false
     isThinking.value = false
@@ -1056,23 +1079,62 @@ function selectCard(id: number) {
   localStorage.setItem('agent-card', String(id))
 }
 
-// 新建角色卡:保存成功后直接选中新卡
-async function createCard() {
-  if (!cardForm.value.name.trim() || cardSaving.value) return
+// 新建:清空表单
+function openNewCard() {
+  editingCardId.value = null
+  cardForm.value = emptyCardForm()
+  cardError.value = ''
+  showCardForm.value = true
+}
+
+// 点击卡片:选中 + 打开查看/编辑弹窗(预填当前值)
+function openCard(c: RoleCard) {
+  selectCard(c.id)
+  editingCardId.value = c.id
+  cardForm.value = {
+    name: c.name,
+    description: c.description,
+    personality: c.personality,
+    scenario: c.scenario,
+    first_message: c.first_message,
+    system_prompt: c.system_prompt,
+  }
+  cardError.value = ''
+  showCardForm.value = true
+}
+
+// 名字 / 背景 / 开场白是接口必填(缺了会 400),前端先拦
+const cardFormValid = computed(() =>
+  !!cardForm.value.name.trim()
+  && !!cardForm.value.description.trim()
+  && !!cardForm.value.first_message.trim())
+
+// 保存:编辑走 PUT,新建走 POST;成功后选中该卡
+async function saveCard() {
+  if (!cardFormValid.value || cardSaving.value) return
   cardSaving.value = true
   cardError.value = ''
+  const editing = editingCardId.value
   try {
-    const res = await fetch('/api/agent/role-cards', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken.value}`,
+    const res = await fetch(
+      editing ? `/api/agent/role-cards/${editing}` : '/api/agent/role-cards',
+      {
+        method: editing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken.value}`,
+        },
+        body: JSON.stringify(cardForm.value),
       },
-      body: JSON.stringify(cardForm.value),
-    })
+    )
     const data = await res.json().catch(() => null)
     if (!res.ok) throw new Error(data?.statusMessage || data?.detail || '保存失败')
-    roleCards.value.unshift(data)
+    if (editing) {
+      const idx = roleCards.value.findIndex(c => c.id === editing)
+      if (idx >= 0) roleCards.value[idx] = data
+    } else {
+      roleCards.value.unshift(data)
+    }
     selectCard(data.id)
     showCardForm.value = false
     cardForm.value = emptyCardForm()
