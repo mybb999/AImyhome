@@ -183,6 +183,61 @@
                 <div class="font-medium">{{ m.name }}</div>
                 <div class="text-label-sm text-on-surface-variant/60">{{ m.description }}</div>
               </button>
+
+              <!-- 角色卡模型(仅 lucas 可见):一级分组 → 展开二级模型列表 -->
+              <template v-if="cardModels.length">
+                <div class="border-t border-brand-border my-1" />
+                <button
+                  class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50 transition-colors"
+                  @click="showCardMenu = !showCardMenu"
+                >
+                  <span>角色卡模型</span>
+                  <span class="text-label-sm text-on-surface-variant/60">
+                    {{ cardModels.length }} 个 {{ showCardMenu ? '▴' : '▾' }}
+                  </span>
+                </button>
+                <div v-if="showCardMenu" class="max-h-80 overflow-y-auto">
+                  <!-- 角色卡:先选卡(可新建),再选模型 -->
+                  <div class="px-2 pt-1 pb-1 text-label-sm text-on-surface-variant/60">角色卡</div>
+                  <div class="flex flex-wrap gap-1 px-1 pb-2">
+                    <button
+                      v-for="c in roleCards"
+                      :key="c.id"
+                      class="chip text-label-sm"
+                      :class="selectedCardId === c.id
+                        ? 'bg-brand-accent/15 text-brand-accent'
+                        : 'hover:bg-surface-high/50'"
+                      @click="selectCard(c.id)"
+                    >
+                      {{ c.name }}
+                    </button>
+                    <button class="chip text-label-sm hover:bg-surface-high/50" @click="showCardForm = true">
+                      ＋ 新建
+                    </button>
+                  </div>
+                  <div v-if="!roleCards.length" class="px-2 pb-1 text-label-sm text-on-surface-variant/60">
+                    还没有角色卡，先新建一张
+                  </div>
+                  <div class="border-t border-brand-border my-1" />
+
+                  <div class="space-y-0.5">
+                    <button
+                      v-for="m in cardModels"
+                      :key="m.id"
+                      class="w-full text-left px-3 py-1.5 rounded-lg transition-colors"
+                      :class="selectedModel === `dzmm:${m.id}`
+                        ? 'text-brand-accent bg-brand-accent/10'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-high/50'"
+                      @click="selectModel(`dzmm:${m.id}`)"
+                    >
+                      <div class="text-body-sm font-medium">{{ m.name }}</div>
+                      <div class="text-label-sm text-on-surface-variant/60">
+                        {{ m.id }}<template v-if="m.context_window"> · {{ Math.round(m.context_window / 1000) }}K</template>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -300,6 +355,55 @@
       </div>
     </div>
   </div>
+
+  <!-- ── 新建角色卡弹窗(仅 lucas 能打开,后端同样校验) ── -->
+  <div v-if="showCardForm" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
+    @click.self="showCardForm = false">
+    <div class="w-full max-w-lg card p-5 max-h-[85vh] overflow-y-auto">
+      <h3 class="text-headline-md text-on-surface">新建角色卡</h3>
+      <p class="mt-1 text-label-sm text-on-surface-variant/60">这些设定会随每次对话发给角色卡模型</p>
+      <div class="mt-4 space-y-3">
+        <div>
+          <label class="block text-label-sm text-on-surface-variant mb-1">角色名 *</label>
+          <input v-model="cardForm.name" maxlength="40" placeholder="例如:艾琳"
+            class="w-full rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+        </div>
+        <div>
+          <label class="block text-label-sm text-on-surface-variant mb-1">背景描述</label>
+          <textarea v-model="cardForm.description" rows="2" placeholder="她是谁、和用户是什么关系"
+            class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+        </div>
+        <div>
+          <label class="block text-label-sm text-on-surface-variant mb-1">性格</label>
+          <textarea v-model="cardForm.personality" rows="2" placeholder="外冷内热、嘴上不饶人但很会照顾人"
+            class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+        </div>
+        <div>
+          <label class="block text-label-sm text-on-surface-variant mb-1">场景</label>
+          <textarea v-model="cardForm.scenario" rows="2" placeholder="深夜公寓，她刚从图书馆回来"
+            class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+        </div>
+        <div>
+          <label class="block text-label-sm text-on-surface-variant mb-1">开场白</label>
+          <textarea v-model="cardForm.first_message" rows="2" placeholder="怎么这时候还没睡？"
+            class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+        </div>
+        <div>
+          <label class="block text-label-sm text-on-surface-variant mb-1">系统提示(可选)</label>
+          <textarea v-model="cardForm.system_prompt" rows="2" placeholder="保持人设，避免出戏"
+            class="w-full resize-none rounded-lg px-3 py-2 text-body-md bg-brand-bg border border-brand-border text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-brand-accent/50" />
+        </div>
+      </div>
+      <p v-if="cardError" class="mt-2 text-label-sm text-red-400">{{ cardError }}</p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="btn-ghost text-body-sm" @click="showCardForm = false">取消</button>
+        <button class="chip bg-brand-accent text-on-primary disabled:opacity-40"
+          :disabled="cardSaving || !cardForm.name.trim()" @click="createCard">
+          {{ cardSaving ? '保存中…' : '保存' }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -336,14 +440,30 @@ interface CreditsInfo {
 const credits = ref<{ doubao?: CreditsInfo; zhipu?: { ok: boolean; free: boolean } } | null>(null)
 // 按当前选中的模型显示对应额度(未选中时按服务端默认 doubao 处理)
 const creditMain = computed(() => {
+  if (selectedModel.value.startsWith('dzmm:')) return '—' // 角色卡模型额度未接入
   if (selectedModel.value === 'glm') return '免费'
   const d = credits.value?.doubao
   return d?.ok && d.points != null ? String(d.points) : '—'
 })
 const creditSub = computed(() => {
-  if (selectedModel.value === 'glm') return ''
+  if (selectedModel.value === 'glm' || selectedModel.value.startsWith('dzmm:')) return ''
   const d = credits.value?.doubao
   return d?.ok && d.balance_cny != null ? `≈ ¥${d.balance_cny.toFixed(2)}` : ''
+})
+
+// 登录/退出时同步角色卡模型列表(lucas 登录后才拉得到)
+watch(authUser, (u) => {
+  if (u) {
+    fetchCardModels()
+    fetchRoleCards()
+  } else {
+    cardModels.value = []
+    roleCards.value = []
+    selectedCardId.value = null
+    if (selectedModel.value.startsWith('dzmm:') && models.value.length) {
+      selectModel(models.value[0]?.id || '')
+    }
+  }
 })
 
 async function fetchCredits() {
@@ -371,11 +491,41 @@ const showScrollButton = ref(false)
 const models = ref<LLMModelInfo[]>([])
 const selectedModel = ref('')
 const showModelMenu = ref(false)
+// 角色卡模型(DZMM):只有 lucas 能拉到列表,其他人 403 → 不显示级联菜单。
+// 选中值用「dzmm:<模型id>」前缀,后端按前缀路由到角色卡接口。
+interface CardModel { id: string; name: string; context_window?: number }
+const cardModels = ref<CardModel[]>([])
+const showCardMenu = ref(false)
+
+// 角色卡(多张,可选可新建):字段和 Card-Chat API 的 card 对象一致
+interface RoleCard {
+  id: number
+  name: string
+  description: string
+  personality: string
+  scenario: string
+  first_message: string
+  system_prompt: string
+}
+const roleCards = ref<RoleCard[]>([])
+const selectedCardId = ref<number | null>(null)
+const showCardForm = ref(false)
+const cardSaving = ref(false)
+const cardError = ref('')
+const emptyCardForm = () => ({
+  name: '', description: '', personality: '',
+  scenario: '', first_message: '', system_prompt: '',
+})
+const cardForm = ref(emptyCardForm())
 
 // 当前选中模型的中文名,显示在顶栏切换按钮上
-const currentModelName = computed(() =>
-  models.value.find(m => m.id === selectedModel.value)?.name || 'AI 助手'
-)
+const currentModelName = computed(() => {
+  if (selectedModel.value.startsWith('dzmm:')) {
+    const id = selectedModel.value.slice(5)
+    return cardModels.value.find(m => m.id === id)?.name || '角色卡模型'
+  }
+  return models.value.find(m => m.id === selectedModel.value)?.name || 'AI 助手'
+})
 
 // ── 登录/注册 ──
 // 表单提交:按当前 tab 走登录或注册;成功后拉会话列表并选中最近一个
@@ -657,13 +807,22 @@ async function send() {
   const requestMessages = messages.value
     .filter(m => m.content !== '')
     .map(m => ({ role: m.role, content: m.content }))
+  // 角色卡模型要带上用户选的角色卡 id(后端校验归属;普通模型不需要)
+  const cardId = selectedModel.value.startsWith('dzmm:')
+    ? (selectedCardId.value ?? undefined)
+    : undefined
   const body = loggedIn
     ? {
         messages: [{ role: 'user', content }],
         model: selectedModel.value || undefined,
         session_id: String(currentConversationId.value),
+        ...(cardId ? { card_id: cardId } : {}),
       }
-    : { messages: requestMessages, model: selectedModel.value || undefined }
+    : {
+        messages: requestMessages,
+        model: selectedModel.value || undefined,
+        ...(cardId ? { card_id: cardId } : {}),
+      }
 
   try {
     const response = await fetch('/api/agent', {
@@ -852,7 +1011,76 @@ async function clearChat() {
 function selectModel(id: string) {
   selectedModel.value = id
   showModelMenu.value = false
+  showCardMenu.value = false
   localStorage.setItem('agent-model', id)
+}
+
+// 角色卡模型列表:只有 lucas 会拿到 200;其他人 403 → 列表为空,不显示级联
+async function fetchCardModels() {
+  if (!authToken.value) return
+  try {
+    const res = await fetch('/api/agent/card-models', {
+      headers: { Authorization: `Bearer ${authToken.value}` },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      cardModels.value = data.models || []
+    }
+  } catch {
+    // 拉不到就不显示级联菜单,不影响普通模型
+  }
+}
+
+// 角色卡列表(同样只有 lucas 拉得到)
+async function fetchRoleCards() {
+  if (!authToken.value) return
+  try {
+    const res = await fetch('/api/agent/role-cards', {
+      headers: { Authorization: `Bearer ${authToken.value}` },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      roleCards.value = data.cards || []
+      const saved = Number(localStorage.getItem('agent-card') || 0)
+      selectedCardId.value = roleCards.value.some(c => c.id === saved)
+        ? saved
+        : (roleCards.value[0]?.id ?? null)
+    }
+  } catch {
+    // 无权限/失败 → 不显示卡片选择
+  }
+}
+
+function selectCard(id: number) {
+  selectedCardId.value = id
+  localStorage.setItem('agent-card', String(id))
+}
+
+// 新建角色卡:保存成功后直接选中新卡
+async function createCard() {
+  if (!cardForm.value.name.trim() || cardSaving.value) return
+  cardSaving.value = true
+  cardError.value = ''
+  try {
+    const res = await fetch('/api/agent/role-cards', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken.value}`,
+      },
+      body: JSON.stringify(cardForm.value),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(data?.statusMessage || data?.detail || '保存失败')
+    roleCards.value.unshift(data)
+    selectCard(data.id)
+    showCardForm.value = false
+    cardForm.value = emptyCardForm()
+  } catch (e: any) {
+    cardError.value = e.message || '保存失败'
+  } finally {
+    cardSaving.value = false
+  }
 }
 
 // ── Lifecycle ──
@@ -863,6 +1091,8 @@ onMounted(async () => {
   if (authUser.value) {
     await refreshConversations()
     fetchCredits()
+    fetchCardModels()
+    fetchRoleCards()
   }
 
   const el = messagesContainer.value
@@ -876,10 +1106,16 @@ onMounted(async () => {
     if (res.ok) {
       const data = await res.json()
       models.value = data.models || []
+      // 上次选的是角色卡模型(dzmm:xxx)就直接恢复 —— 它不在普通模型列表里;
+      // 名字要等 cardModels 拉回来才有,期间顶栏显示「角色卡模型」
       const saved = localStorage.getItem('agent-model')
-      selectedModel.value = models.value.some(m => m.id === saved)
-        ? saved!
-        : (models.value[0]?.id || '')
+      if (saved?.startsWith('dzmm:')) {
+        selectedModel.value = saved
+      } else {
+        selectedModel.value = models.value.some(m => m.id === saved)
+          ? saved!
+          : (models.value[0]?.id || '')
+      }
     }
   } catch {
     // keep selector hidden — chat still works with server default
