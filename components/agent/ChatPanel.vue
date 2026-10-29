@@ -66,8 +66,11 @@
                 <div class="mt-1.5 text-body-sm font-medium text-on-surface truncate max-w-full">
                   {{ authUser.username }}
                 </div>
-                <!-- 剩余积分:占位值,后续随所选模型切换而变化(计费体系未做) -->
-                <div class="mt-0.5 text-label-sm text-on-surface-variant/60">剩余积分 {{ points }}</div>
+                <!-- 剩余积分:豆包取火山账户实时余额换算(1 积分 = 0.001 元);
+                     智谱 GLM-4.7-Flash 免费 → 显示「免费」;查询失败显示「—」 -->
+                <div class="mt-0.5 text-label-sm text-on-surface-variant/60">
+                  剩余积分 {{ creditMain }}<span v-if="creditSub" class="ml-1">（{{ creditSub }}）</span>
+                </div>
               </div>
             </template>
             <template v-else>
@@ -322,8 +325,35 @@ const pwdMsg = ref('')
 const pwdOk = ref(false)
 const pwdLoading = ref(false)
 
-// 剩余积分:占位值 —— 后续做计费体系时,按所选大模型的单价扣减并在这里变化
-const points = ref(100)
+// 剩余积分(服务端 /api/credits):豆包 = 火山账户余额(缓存 5 分钟);
+// 智谱免费;查不到显示「—」。这里只展示供应商账户额度,不做用户扣减。
+interface CreditsInfo {
+  ok: boolean
+  points: number | null
+  balance_cny: number | null
+  currency?: string
+}
+const credits = ref<{ doubao?: CreditsInfo; zhipu?: { ok: boolean; free: boolean } } | null>(null)
+// 按当前选中的模型显示对应额度(未选中时按服务端默认 doubao 处理)
+const creditMain = computed(() => {
+  if (selectedModel.value === 'glm') return '免费'
+  const d = credits.value?.doubao
+  return d?.ok && d.points != null ? String(d.points) : '—'
+})
+const creditSub = computed(() => {
+  if (selectedModel.value === 'glm') return ''
+  const d = credits.value?.doubao
+  return d?.ok && d.balance_cny != null ? `≈ ¥${d.balance_cny.toFixed(2)}` : ''
+})
+
+async function fetchCredits() {
+  try {
+    const res = await fetch('/api/credits')
+    if (res.ok) credits.value = await res.json()
+  } catch {
+    // 查不到余额不影响聊天,侧栏显示「—」
+  }
+}
 
 // ── 会话管理(M3.2,登录用户才有) ──
 const conversations = ref<{ id: number; title: string; is_main?: boolean }[]>([])
@@ -832,6 +862,7 @@ onMounted(async () => {
   authReady.value = true
   if (authUser.value) {
     await refreshConversations()
+    fetchCredits()
   }
 
   const el = messagesContainer.value
