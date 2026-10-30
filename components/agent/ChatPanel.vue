@@ -824,14 +824,37 @@ async function send() {
   historyChars.value += content.length
   input.value = ''
 
-  // 空 assistant 占位消息:流式内容往里填
+  // 空 assistant 占位消息:流式内容往里填(streaming=true → 期间纯文本直出)
   messages.value.push({
     id: generateMessageId(),
     role: 'assistant',
     content: '',
     timestamp: Date.now(),
+    streaming: true,
   })
   const assistantIndex = messages.value.length - 1
+
+  // token 攒批:60ms 合并一次再写响应式状态。
+  // 原来每来一个字就 += 并滚动,触发整篇 Markdown + 代码高亮重渲染,长回答会卡
+  let pendingText = ''
+  let flushTimer: ReturnType<typeof setTimeout> | null = null
+  const flushTokens = () => {
+    if (flushTimer) {
+      clearTimeout(flushTimer)
+      flushTimer = null
+    }
+    if (!pendingText) return
+    const msg = messages.value[assistantIndex]
+    if (msg) {
+      msg.content += pendingText
+      scrollToBottom()
+    }
+    pendingText = ''
+  }
+  const scheduleFlush = () => {
+    if (flushTimer) return
+    flushTimer = setTimeout(flushTokens, 60)
+  }
 
   isThinking.value = true
   isStreaming.value = true
@@ -941,13 +964,15 @@ async function send() {
         } else {
           const content = parsed.choices?.[0]?.delta?.content
           if (content && messages.value[assistantIndex]) {
-            messages.value[assistantIndex].content += content
-            scrollToBottom()
+            pendingText += content
+            scheduleFlush()
           }
         }
         currentEvent = ''   // 事件块结束,重置
       }
     }
+
+    flushTokens()   // 收尾前把缓冲的 token 全部落地
 
     // 登录用户:发完刷新列表(首句会自动变成会话标题)
     if (loggedIn) {
@@ -964,6 +989,10 @@ async function send() {
     // 角色卡模型失败:刷新可用性标记(后端会把 429/5xx 记进模型状态)
     if (selectedModel.value.startsWith('dzmm:')) fetchCardModels()
   } finally {
+    flushTokens()
+    // 流结束:切回 Markdown 渲染(final 一次 hljs 高亮,而不是每个 token 一次)
+    const assistantMsg = messages.value[assistantIndex]
+    if (assistantMsg) assistantMsg.streaming = false
     isStreaming.value = false
     isThinking.value = false
     if (inputEl.value) {

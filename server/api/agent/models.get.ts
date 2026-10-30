@@ -4,7 +4,9 @@
 import { availableProviders } from '~/server/utils/llm'
 
 // 组装返回:{ models: [{id, name, description}] }
-export default defineEventHandler(() => {
+export default defineEventHandler((event) => {
+  // 模型列表是静态注册表:CDN 缓存 5 分钟,减少每次打开页面的请求
+  setHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=300')
   return {
     models: availableProviders().map(p => ({
       id: p.id,

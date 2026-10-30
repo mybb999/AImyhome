@@ -7,6 +7,8 @@ export interface ChatMessage {
   timestamp: number
   /** 回答引用的资料来源(RAG 命中,仅 assistant 消息) */
   sources?: SourceItem[]
+  /** 流式生成中:期间纯文本直出,结束后再渲染 Markdown(防每 token 重渲染卡顿) */
+  streaming?: boolean
 }
 
 /** RAG 命中来源,由 Agent 服务经 SSE sources 事件下发 */

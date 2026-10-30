@@ -23,6 +23,13 @@
       <!-- User message: plain text -->
       <p v-if="isUser" class="whitespace-pre-wrap break-words">{{ message.content }}</p>
 
+      <!-- 流式期间:纯文本直出。每来一个 token 都重新 md.render + 代码高亮太贵,
+           长回答会明显卡;流结束再一次性渲染 Markdown -->
+      <div
+        v-else-if="message.streaming"
+        class="whitespace-pre-wrap break-words text-on-surface-variant"
+      >{{ message.content || '▋' }}</div>
+
       <!-- Assistant message: rendered Markdown -->
       <div
         v-else
