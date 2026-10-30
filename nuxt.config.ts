@@ -21,7 +21,9 @@ export default defineNuxtConfig({
         { property: 'og:type', content: 'website' },
       ],
       script: [
-        { src: 'https://pipeline.ai-myhome.space/sdk.js', 'data-app-key': '13b90995036451356245c5ae', 'data-endpoint': 'https://pipeline.ai-myhome.space/api/collect' },
+        // async:埋点 SDK 不能阻塞首屏。之前同步加载,而该域名曾 10s+ 超时,
+        // 整页渲染被它卡住 —— 「网站很卡」的元凶
+        { src: 'https://pipeline.ai-myhome.space/sdk.js', async: true, 'data-app-key': '13b90995036451356245c5ae', 'data-endpoint': 'https://pipeline.ai-myhome.space/api/collect' },
       ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=20260601' },
