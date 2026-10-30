@@ -244,6 +244,9 @@
                         {{ m.id }}<template v-if="m.context_window"> · {{ Math.round(m.context_window / 1000) }}K</template>
                         <template v-if="m.available === false && m.reason"> · {{ m.reason }}</template>
                       </div>
+                      <div v-if="priceText(m) || latencyText(m)" class="text-label-sm text-on-surface-variant/50">
+                        {{ priceText(m) }}<template v-if="priceText(m) && latencyText(m)"> · </template>{{ latencyText(m) }}
+                      </div>
                     </button>
                   </div>
                 </div>
@@ -509,6 +512,8 @@ interface CardModel {
   context_window?: number
   available?: boolean
   reason?: string
+  pricing?: { unit?: string; input?: number; output?: number }
+  latency?: { ttft_ms: number; total_ms: number } | null
 }
 const cardModels = ref<CardModel[]>([])
 const showCardMenu = ref(false)
@@ -936,6 +941,8 @@ async function send() {
     if (loggedIn) {
       refreshConversations()
     }
+    // 角色卡模型:刷新列表拿最新实测响应时间
+    if (selectedModel.value.startsWith('dzmm:')) fetchCardModels()
   } catch (err: any) {
     // 出错删掉空占位消息,显示错误横幅
     if (messages.value[assistantIndex]?.content === '') {
@@ -1077,6 +1084,21 @@ async function fetchRoleCards() {
 function selectCard(id: number) {
   selectedCardId.value = id
   localStorage.setItem('agent-card', String(id))
+}
+
+// 模型说明:接口只返回价格/上下文,响应时间靠真实对话实测(首字/总耗时)
+function priceText(m: CardModel) {
+  const p = m.pricing
+  if (!p || p.input == null) return ''
+  const unit = (p.unit || '').includes('credit') ? '积分/千 tokens' : (p.unit || '')
+  return p.input === p.output
+    ? `${p.input} ${unit}`
+    : `入 ${p.input} / 出 ${p.output} ${unit}`
+}
+
+function latencyText(m: CardModel) {
+  if (!m.latency) return ''
+  return `首字 ${(m.latency.ttft_ms / 1000).toFixed(1)}s · 总 ${(m.latency.total_ms / 1000).toFixed(1)}s`
 }
 
 // 新建:清空表单
