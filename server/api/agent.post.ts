@@ -38,9 +38,17 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!res.ok) {
-    // 原样透传状态码:401/403 让前端能识别登录失效/会话不属于自己
+    // 原样透传状态码:401/403 让前端能识别登录失效/会话不属于自己;
+    // Agent 的错误体是 {detail: "人话"},优先取出来,别把整段 JSON 丢给用户
     const text = await res.text().catch(() => 'Unknown error')
-    throw createError({ statusCode: res.status, statusMessage: `Agent error: ${text.slice(0, 200)}` })
+    let message = text.slice(0, 200)
+    try {
+      const parsed = JSON.parse(text)
+      message = parsed.detail || parsed.statusMessage || message
+    } catch {
+      // 非 JSON 就用原文
+    }
+    throw createError({ statusCode: res.status, statusMessage: message })
   }
 
   const webStream = res.body!
