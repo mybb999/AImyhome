@@ -237,8 +237,15 @@
                       @click="m.available !== false && selectModel(`dzmm:${m.id}`)"
                     >
                       <div class="flex items-center justify-between gap-2">
-                        <div class="text-body-sm font-medium">{{ m.name }}</div>
+                        <div class="flex items-center gap-1.5">
+                          <span class="text-body-sm font-medium">{{ m.name }}</span>
+                          <span v-if="m.recommended" class="text-label-sm text-brand-accent">推荐</span>
+                          <span v-if="m.min_level" class="text-label-sm text-on-surface-variant/50">Lv.{{ m.min_level }}</span>
+                        </div>
                         <span v-if="m.available === false" class="text-label-sm text-red-400/80">不可用</span>
+                      </div>
+                      <div v-if="m.description" class="text-label-sm text-on-surface-variant/70">
+                        {{ m.description }}
                       </div>
                       <div class="text-label-sm text-on-surface-variant/60">
                         {{ m.id }}<template v-if="m.context_window"> · {{ Math.round(m.context_window / 1000) }}K</template>
@@ -514,6 +521,11 @@ interface CardModel {
   reason?: string
   pricing?: { unit?: string; input?: number; output?: number }
   latency?: { ttft_ms: number; total_ms: number } | null
+  description?: string
+  category?: string
+  recommended?: boolean
+  min_level?: number
+  thinking?: boolean
 }
 const cardModels = ref<CardModel[]>([])
 const showCardMenu = ref(false)
