@@ -813,6 +813,21 @@ async function send() {
 
   errorMessage.value = ''
 
+  // 角色卡开场白:新会话的第一条消息前,把卡的开场白作为第一条 assistant
+  // 气泡放进对话框(和 DZMM 自己的对话框一致 —— 不然一上来只有问答,
+  // 角色设定很突兀)。后端写记忆时同样会存开场白,刷新后还在
+  if (selectedModel.value.startsWith('dzmm:') && selectedCardId.value != null && messages.value.length === 0) {
+    const card = roleCards.value.find(c => c.id === selectedCardId.value)
+    if (card?.first_message) {
+      messages.value.push({
+        id: generateMessageId(),
+        role: 'assistant',
+        content: card.first_message,
+        timestamp: Date.now(),
+      })
+    }
+  }
+
   const userMsg: ChatMessage = {
     id: generateMessageId(),
     role: 'user',
