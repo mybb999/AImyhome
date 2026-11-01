@@ -75,32 +75,36 @@
       </div>
 
       <!-- 重新生成 + 版本切换(仅角色卡模型的最后一条回答):
-           右下角 🔄 重新生成;有多个版本时 ◀ x/N ▶ 左右切换浏览 -->
+           右下角 🔄 重新生成;有版本时 ◀ x/N ▶ 左右切换浏览(1/1 也显示,
+           让用户看到「版本已拉取,只是还没重生过」) -->
       <div
-        v-if="!isUser && !message.streaming && (canRegenerate || versionCount > 1)"
-        class="mt-1.5 flex items-center justify-end gap-1.5 select-none"
+        v-if="!isUser && !message.streaming && (canRegenerate || versionCount > 0)"
+        class="mt-2 flex items-center justify-end gap-2 select-none"
       >
-        <template v-if="versionCount > 1">
+        <div
+          v-if="versionCount > 0"
+          class="flex items-center gap-1 rounded-lg border border-brand-border bg-surface-low px-1 py-1"
+        >
           <button
-            class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            class="w-8 h-8 flex items-center justify-center rounded-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
             :disabled="currentIndex <= 0"
             title="上一个版本"
             @click="$emit('version-change', currentIndex - 1)"
           >◀</button>
-          <span class="text-label-sm text-on-surface-variant/60">{{ currentIndex + 1 }}/{{ versionCount }}</span>
+          <span class="px-1.5 text-body-sm text-on-surface-variant tabular-nums">{{ currentIndex + 1 }}/{{ versionCount }}</span>
           <button
-            class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            class="w-8 h-8 flex items-center justify-center rounded-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
             :disabled="currentIndex >= versionCount - 1"
             title="下一个版本"
             @click="$emit('version-change', currentIndex + 1)"
           >▶</button>
-        </template>
+        </div>
         <button
           v-if="canRegenerate"
-          class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer"
+          class="px-3.5 py-1.5 rounded-lg border border-brand-border bg-surface-low text-body-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-high hover:border-brand-accent/40 transition-colors cursor-pointer"
           title="重新生成"
           @click="$emit('regenerate')"
-        >🔄</button>
+        >🔄 重新生成</button>
       </div>
 
       <!-- Timestamp -->
