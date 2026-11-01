@@ -74,41 +74,56 @@
         </div>
       </div>
 
-      <!-- 重新生成 + 版本切换(仅角色卡模型的最后一条回答):
-           右下角 🔄 重新生成;有版本时 ◀ x/N ▶ 左右切换浏览(1/1 也显示,
+      <!-- 时间戳 + 操作行(仅角色卡模型的最后一条回答):
+           左侧时间,右侧 🔄 重新生成 + ◀ x/N ▶ 版本切换(1/1 也显示,
            让用户看到「版本已拉取,只是还没重生过」) -->
       <div
         v-if="!isUser && !message.streaming && (canRegenerate || versionCount > 0)"
-        class="mt-2 flex items-center justify-end gap-2 select-none"
+        class="mt-2 flex items-center justify-between gap-2"
       >
-        <div
-          v-if="versionCount > 0"
-          class="flex items-center gap-1 rounded-lg border border-brand-border bg-surface-low px-1 py-1"
-        >
+        <p class="text-label-sm text-on-surface-variant/60 select-none">
+          {{ formattedTime }}
+        </p>
+        <div class="flex items-center gap-1.5 select-none">
+          <div
+            v-if="versionCount > 0"
+            class="flex items-center rounded-full border border-brand-border/60 bg-surface-low/60 overflow-hidden"
+          >
+            <button
+              class="h-7 w-7 flex items-center justify-center text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-high transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-on-surface-variant/70"
+              :disabled="currentIndex <= 0"
+              title="上一个版本"
+              @click="$emit('version-change', currentIndex - 1)"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+            </button>
+            <span class="h-7 px-1 flex items-center text-label-sm text-on-surface-variant/80 tabular-nums whitespace-nowrap">{{ currentIndex + 1 }} / {{ versionCount }}</span>
+            <button
+              class="h-7 w-7 flex items-center justify-center text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-high transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-on-surface-variant/70"
+              :disabled="currentIndex >= versionCount - 1"
+              title="下一个版本"
+              @click="$emit('version-change', currentIndex + 1)"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+            </button>
+          </div>
           <button
-            class="w-8 h-8 flex items-center justify-center rounded-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-            :disabled="currentIndex <= 0"
-            title="上一个版本"
-            @click="$emit('version-change', currentIndex - 1)"
-          >◀</button>
-          <span class="px-1.5 text-body-sm text-on-surface-variant tabular-nums">{{ currentIndex + 1 }}/{{ versionCount }}</span>
-          <button
-            class="w-8 h-8 flex items-center justify-center rounded-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-            :disabled="currentIndex >= versionCount - 1"
-            title="下一个版本"
-            @click="$emit('version-change', currentIndex + 1)"
-          >▶</button>
+            v-if="canRegenerate"
+            class="h-7 px-2.5 flex items-center gap-1 rounded-full border border-brand-border/60 text-label-sm text-on-surface-variant/80 hover:text-brand-accent hover:border-brand-accent/50 hover:bg-brand-accent/5 transition-colors cursor-pointer"
+            title="重新生成"
+            @click="$emit('regenerate')"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+            <span>重新生成</span>
+          </button>
         </div>
-        <button
-          v-if="canRegenerate"
-          class="px-3.5 py-1.5 rounded-lg border border-brand-border bg-surface-low text-body-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-high hover:border-brand-accent/40 transition-colors cursor-pointer"
-          title="重新生成"
-          @click="$emit('regenerate')"
-        >🔄 重新生成</button>
       </div>
 
-      <!-- Timestamp -->
-      <p class="text-label-sm text-on-surface-variant/60 mt-1 select-none">
+      <!-- Timestamp (无操作时单独显示) -->
+      <p
+        v-if="isUser || message.streaming || (!canRegenerate && versionCount === 0)"
+        class="text-label-sm text-on-surface-variant/60 mt-1 select-none"
+      >
         {{ formattedTime }}
       </p>
     </div>
