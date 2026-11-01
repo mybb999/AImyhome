@@ -281,7 +281,14 @@
         </div>
 
         <!-- Messages -->
-        <ChatMessage v-for="msg in messages" :key="msg.id" :message="msg" />
+        <ChatMessage
+          v-for="msg in messages"
+          :key="msg.id"
+          :message="msg"
+          :can-regenerate="canRegenerateMsg(msg)"
+          @regenerate="regenerate"
+          @version-change="(i: number) => switchVersion(msg, i)"
+        />
 
         <!-- Thinking indicator -->
         <div v-if="isThinking && !isStreaming" class="flex gap-3">
@@ -690,6 +697,8 @@ async function loadHistory(id: number) {
   if (data.threshold) historyThreshold.value = data.threshold
   await nextTick()
   scrollToBottom()
+  // 角色卡会话:把生成版本挂到最后一条回答上(刷新后箭头还在)
+  fetchVersions()
 }
 
 // 切换会话:清空消息区 → 从服务端拉该会话的完整历史回填
@@ -849,28 +858,6 @@ async function send() {
   })
   const assistantIndex = messages.value.length - 1
 
-  // token 攒批:60ms 合并一次再写响应式状态。
-  // 原来每来一个字就 += 并滚动,触发整篇 Markdown + 代码高亮重渲染,长回答会卡
-  let pendingText = ''
-  let flushTimer: ReturnType<typeof setTimeout> | null = null
-  const flushTokens = () => {
-    if (flushTimer) {
-      clearTimeout(flushTimer)
-      flushTimer = null
-    }
-    if (!pendingText) return
-    const msg = messages.value[assistantIndex]
-    if (msg) {
-      msg.content += pendingText
-      scrollToBottom()
-    }
-    pendingText = ''
-  }
-  const scheduleFlush = () => {
-    if (flushTimer) return
-    flushTimer = setTimeout(flushTokens, 60)
-  }
-
   isThinking.value = true
   isStreaming.value = true
 
@@ -899,6 +886,47 @@ async function send() {
         model: selectedModel.value || undefined,
         ...(cardId ? { card_id: cardId } : {}),
       }
+
+  try {
+    await streamAgent(assistantIndex, body, loggedIn)
+    // 登录用户:发完刷新列表(首句会自动变成会话标题)
+    if (loggedIn) {
+      refreshConversations()
+    }
+    // 角色卡模型:刷新列表拿最新实测响应时间 + 拉最新版本列表
+    if (selectedModel.value.startsWith('dzmm:')) {
+      fetchCardModels()
+      fetchVersions()
+    }
+  } catch {
+    // streamAgent 内部已处理(删占位气泡 + 错误横幅)
+  }
+}
+
+// fetch /api/agent → 逐行解析 SSE → token 攒批写进 messages[assistantIndex]。
+// send() 和 regenerate() 共用;失败时 removeEmptyOnError=false 保留气泡(重生用)
+async function streamAgent(assistantIndex: number, body: Record<string, unknown>, loggedIn: boolean, removeEmptyOnError = true) {
+  // token 攒批:60ms 合并一次再写响应式状态。
+  // 原来每来一个字就 += 并滚动,触发整篇 Markdown + 代码高亮重渲染,长回答会卡
+  let pendingText = ''
+  let flushTimer: ReturnType<typeof setTimeout> | null = null
+  const flushTokens = () => {
+    if (flushTimer) {
+      clearTimeout(flushTimer)
+      flushTimer = null
+    }
+    if (!pendingText) return
+    const msg = messages.value[assistantIndex]
+    if (msg) {
+      msg.content += pendingText
+      scrollToBottom()
+    }
+    pendingText = ''
+  }
+  const scheduleFlush = () => {
+    if (flushTimer) return
+    flushTimer = setTimeout(flushTokens, 60)
+  }
 
   try {
     const response = await fetch('/api/agent', {
@@ -988,16 +1016,9 @@ async function send() {
     }
 
     flushTokens()   // 收尾前把缓冲的 token 全部落地
-
-    // 登录用户:发完刷新列表(首句会自动变成会话标题)
-    if (loggedIn) {
-      refreshConversations()
-    }
-    // 角色卡模型:刷新列表拿最新实测响应时间
-    if (selectedModel.value.startsWith('dzmm:')) fetchCardModels()
   } catch (err: any) {
-    // 出错删掉空占位消息,显示错误横幅
-    if (messages.value[assistantIndex]?.content === '') {
+    // 出错删掉空占位消息,显示错误横幅(重生时保留气泡,由调用方恢复旧内容)
+    if (removeEmptyOnError && messages.value[assistantIndex]?.content === '') {
       messages.value.splice(assistantIndex, 1)
     }
     errorMessage.value = err.message || '生成失败，请重试'
@@ -1013,6 +1034,82 @@ async function send() {
     if (inputEl.value) {
       inputEl.value.style.height = 'auto'
     }
+  }
+}
+
+// 角色卡回答重新生成:只有最后一条 AI 回答能重生(记忆是线性的,
+// 重生旧对话会打乱后续上下文)。新回答替换当前气泡,旧版本由服务器存档
+async function regenerate() {
+  if (isStreaming.value || isThinking.value) return
+  const idx = messages.value.length - 1
+  const lastMsg = messages.value[idx]
+  if (!lastMsg || lastMsg.role !== 'assistant' || lastMsg.streaming) return
+
+  errorMessage.value = ''
+  const prevContent = lastMsg.content
+  const lastUser = [...messages.value].reverse().find(m => m.role === 'user')
+  lastMsg.versions = undefined
+  lastMsg.versionIndex = undefined
+  lastMsg.content = ''
+  lastMsg.streaming = true
+  isThinking.value = true
+  isStreaming.value = true
+  await nextTick()
+  scrollToBottom()
+
+  const cardId = selectedModel.value.startsWith('dzmm:')
+    ? (selectedCardId.value ?? undefined)
+    : undefined
+  const body = {
+    messages: [{ role: 'user', content: lastUser?.content ?? '' }],
+    model: selectedModel.value || undefined,
+    session_id: String(currentConversationId.value),
+    ...(cardId ? { card_id: cardId } : {}),
+    regenerate: true,
+  }
+
+  await streamAgent(idx, body, true, false)
+  // 成功:拉最新版本列表挂到气泡上;失败:恢复旧回答(重生失败不能把上一条也吞了)
+  if (messages.value[idx] === lastMsg) {
+    if (lastMsg.content) {
+      fetchCardModels()
+      fetchVersions()
+    } else {
+      lastMsg.content = prevContent
+    }
+  }
+}
+
+// 是否给这条消息显示重新生成按钮:仅角色卡模型 + 登录 + 最后一条 AI 回答
+function canRegenerateMsg(msg: ChatMessage): boolean {
+  if (!selectedModel.value.startsWith('dzmm:')) return false
+  if (!authUser.value || currentConversationId.value == null) return false
+  if (messages.value[messages.value.length - 1] !== msg) return false
+  return msg.role === 'assistant' && !msg.streaming
+}
+
+// 版本切换:纯展示,不改服务端记忆(记忆里始终是最新版)
+function switchVersion(msg: ChatMessage, index: number) {
+  if (!msg.versions?.length) return
+  msg.versionIndex = Math.min(Math.max(index, 0), msg.versions.length - 1)
+}
+
+// 拉当前会话的生成版本列表(角色卡重新生成),挂到最后一条 AI 回答上;
+// 失败不打扰对话,只是没有箭头
+async function fetchVersions() {
+  if (!authUser.value || currentConversationId.value == null) return
+  try {
+    const data = await $fetch<{ versions: { version_no: number; content: string }[] }>(
+      `/api/agent/conversations/${currentConversationId.value}/versions`,
+      { headers: { Authorization: `Bearer ${authToken.value}` } },
+    )
+    const lastMsg = messages.value[messages.value.length - 1]
+    if (lastMsg?.role === 'assistant') {
+      lastMsg.versions = data.versions || []
+      lastMsg.versionIndex = lastMsg.versions.length ? lastMsg.versions.length - 1 : undefined
+    }
+  } catch {
+    // 忽略:没有版本只是少个箭头
   }
 }
 

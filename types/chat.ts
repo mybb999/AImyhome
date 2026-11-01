@@ -9,6 +9,16 @@ export interface ChatMessage {
   sources?: SourceItem[]
   /** 流式生成中:期间纯文本直出,结束后再渲染 Markdown(防每 token 重渲染卡顿) */
   streaming?: boolean
+  /** 重新生成过的版本列表(角色卡模型,服务器存档),箭头切换纯浏览 */
+  versions?: ChatVersion[]
+  /** 当前浏览的版本下标(指向 versions 数组) */
+  versionIndex?: number
+}
+
+/** 一个生成版本(角色卡重新生成,服务器存档跨刷新保留) */
+export interface ChatVersion {
+  version_no: number
+  content: string
 }
 
 /** RAG 命中来源,由 Agent 服务经 SSE sources 事件下发 */

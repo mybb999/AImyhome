@@ -74,6 +74,35 @@
         </div>
       </div>
 
+      <!-- 重新生成 + 版本切换(仅角色卡模型的最后一条回答):
+           右下角 🔄 重新生成;有多个版本时 ◀ x/N ▶ 左右切换浏览 -->
+      <div
+        v-if="!isUser && !message.streaming && (canRegenerate || versionCount > 1)"
+        class="mt-1.5 flex items-center justify-end gap-1.5 select-none"
+      >
+        <template v-if="versionCount > 1">
+          <button
+            class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            :disabled="currentIndex <= 0"
+            title="上一个版本"
+            @click="$emit('version-change', currentIndex - 1)"
+          >◀</button>
+          <span class="text-label-sm text-on-surface-variant/60">{{ currentIndex + 1 }}/{{ versionCount }}</span>
+          <button
+            class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            :disabled="currentIndex >= versionCount - 1"
+            title="下一个版本"
+            @click="$emit('version-change', currentIndex + 1)"
+          >▶</button>
+        </template>
+        <button
+          v-if="canRegenerate"
+          class="text-label-sm text-on-surface-variant/60 hover:text-on-surface-variant/90 transition-colors cursor-pointer"
+          title="重新生成"
+          @click="$emit('regenerate')"
+        >🔄</button>
+      </div>
+
       <!-- Timestamp -->
       <p class="text-label-sm text-on-surface-variant/60 mt-1 select-none">
         {{ formattedTime }}
@@ -99,10 +128,31 @@ import type { ChatMessage } from '~/types/chat'
 
 const props = defineProps<{
   message: ChatMessage
+  /** 只有最后一条回答能重新生成,由父组件传入 */
+  canRegenerate?: boolean
+}>()
+
+const emit = defineEmits<{
+  regenerate: []
+  'version-change': [index: number]
 }>()
 
 // 是不是用户发的:决定气泡靠左还是靠右、渲染纯文本还是 Markdown
 const isUser = computed(() => props.message.role === 'user')
+
+// 版本浏览:有多个版本才显示 ◀ x/N ▶;当前浏览的下标(纯展示,不改记忆)
+const versionCount = computed(() => props.message.versions?.length || 0)
+const currentIndex = computed(() => {
+  const i = props.message.versionIndex ?? versionCount.value - 1
+  return Math.min(Math.max(i, 0), Math.max(versionCount.value - 1, 0))
+})
+
+// 正文显示:正在浏览某个历史版本时显示该版本,否则显示 message.content
+const displayContent = computed(() => {
+  if (isUser.value) return props.message.content
+  const v = props.message.versions?.[currentIndex.value]
+  return v ? v.content : props.message.content
+})
 
 // 参考资料默认折叠,点开才看明细(每个消息气泡自己记自己的展开态)
 const showSources = ref(false)
@@ -161,7 +211,7 @@ const md = new MarkdownIt({
 // 消息正文 → HTML,交给 v-html 渲染(用户消息不用,直接返回空)
 const renderedMarkdown = computed(() => {
   if (isUser.value) return ''
-  return md.render(props.message.content || '▋')
+  return md.render(displayContent.value || '▋')
 })
 
 // ── Inject highlight.js dark theme (client only) ──
