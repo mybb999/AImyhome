@@ -32,6 +32,10 @@
 - **DOM 归属**：Twikoo 初始化时会替换/移动挂载节点，若让 Vue 管理该节点会触发
   `insertBefore` 报错并把节点删掉。因此模板里只保留一个空的 `mountEl`，
   占位节点和 `#twikoo-container` 都用原生 DOM 创建，Vue 不再参与这棵子树的 patch。
+- **阻止预取**：Nuxt 默认会把页面内所有 dynamic import 以
+  `<link rel="prefetch">` 预取（由 vue-bundle-renderer 生成），Twikoo 的
+  ~1MB chunk 仍会在空闲时被下载。通过 `build:manifest` 钩子把 Twikoo 条目的
+  `prefetch` / `preload` 置为 `false`，保留运行时动态 import。
 - 组件卸载时 `observer.disconnect()`；`started` 标志防止重复初始化
 
 ## 非目标
