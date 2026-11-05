@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 
 /**
  * Twikoo 留言板配置
@@ -99,7 +99,9 @@ async function loadTwikoo() {
 
 // 留言板在首屏以下：滚动到附近（提前 300px）才下载 Twikoo，
 // 访客没滚到这里就不必为 900KB+ 的评论组件付费。
-onMounted(() => {
+// 必须等 hydration 完成（onNuxtReady）再挂 observer：慢网络下 Vue 还在
+// 补丁 ClientOnly 子树，过早插入的原生节点会被 hydration 清掉。
+onNuxtReady(() => {
   const el = sectionEl.value
   if (!el) return
 

@@ -36,6 +36,9 @@
   `<link rel="prefetch">` 预取（由 vue-bundle-renderer 生成），Twikoo 的
   ~1MB chunk 仍会在空闲时被下载。通过 `build:manifest` 钩子把 Twikoo 条目的
   `prefetch` / `preload` 置为 `false`，保留运行时动态 import。
+- **等 hydration 完成**：observer 用 `onNuxtReady` 挂载，而不是 `onMounted`。
+  线上慢网络下 hydration 可持续数十秒，期间 Vue 仍在补丁 `ClientOnly` 子树，
+  过早用原生 DOM 插入的占位/容器会被清掉，Twikoo 初始化到已脱离文档的节点上。
 - 组件卸载时 `observer.disconnect()`；`started` 标志防止重复初始化
 
 ## 非目标
