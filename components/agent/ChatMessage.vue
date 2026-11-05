@@ -142,7 +142,8 @@
 
 <script setup lang="ts">
 import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
+// 只打包官方常用语言（37 种），避免把 190+ 种语言的规则全塞进聊天页
+import hljs from 'highlight.js/lib/common'
 import type { ChatMessage } from '~/types/chat'
 
 const props = defineProps<{

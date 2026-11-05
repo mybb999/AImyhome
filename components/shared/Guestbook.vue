@@ -1,5 +1,5 @@
 <template>
-  <section class="space-y-5">
+  <section ref="sectionEl" class="space-y-5">
     <div class="flex items-center justify-between">
       <h2 class="text-headline-lg text-on-surface">
         💬 留言板
@@ -13,11 +13,12 @@
       </span>
     </div>
 
-    <div class="card">
+    <!-- Twikoo 初始化时会替换/移动挂载节点，所以这里只让 Vue 管理一个空壳，
+         评论节点和占位节点都用原生 DOM 创建，避免和 Vue 的虚拟 DOM 打架 -->
+    <div ref="mountEl" class="card">
       <ClientOnly>
-        <div id="twikoo-container" />
         <template #fallback>
-          <div class="flex items-center justify-center py-12 text-on-surface-variant text-body-md">
+          <div class="flex items-center justify-center py-12 min-h-[160px] text-on-surface-variant text-body-md">
             评论加载中...
           </div>
         </template>
@@ -27,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 /**
  * Twikoo 留言板配置
@@ -41,7 +42,32 @@ import { onMounted } from 'vue'
  *   envId: 'https://twikoo-lucas-space.vercel.app'
  */
 
-onMounted(async () => {
+const sectionEl = ref<HTMLElement | null>(null)
+const mountEl = ref<HTMLElement | null>(null)
+
+let observer: IntersectionObserver | null = null
+let placeholderEl: HTMLDivElement | null = null
+let started = false
+
+function setPlaceholder(text: string) {
+  if (!mountEl.value) return
+  if (!placeholderEl) {
+    placeholderEl = document.createElement('div')
+    placeholderEl.className = 'flex items-center justify-center py-12 min-h-[160px] text-on-surface-variant text-body-md'
+    mountEl.value.appendChild(placeholderEl)
+  }
+  placeholderEl.textContent = text
+}
+
+async function loadTwikoo() {
+  if (started || !mountEl.value) return
+  started = true
+  setPlaceholder('评论加载中...')
+
+  const container = document.createElement('div')
+  container.id = 'twikoo-container'
+  mountEl.value.appendChild(container)
+
   try {
     const twikoo = await import('twikoo')
 
@@ -55,15 +81,47 @@ onMounted(async () => {
       ? 'https://message-board-pi-pearl.vercel.app'
       : `${window.location.origin}/api/twikoo`
 
-    twikoo.default({
+    await twikoo.default({
       envId,
-      el: '#twikoo-container',
+      el: container,
       lang: 'zh-CN',
       path: window.location.pathname,
     })
+    // Twikoo 已接管：移除占位，后续不再由 Vue 触碰这块 DOM
+    placeholderEl?.remove()
+    placeholderEl = null
   } catch (err) {
+    container.remove()
+    setPlaceholder('留言板加载失败，请刷新重试')
     console.error('Twikoo 加载失败:', err)
   }
+}
+
+// 留言板在首屏以下：滚动到附近（提前 300px）才下载 Twikoo，
+// 访客没滚到这里就不必为 900KB+ 的评论组件付费。
+onMounted(() => {
+  const el = sectionEl.value
+  if (!el) return
+
+  if (typeof IntersectionObserver === 'undefined') {
+    loadTwikoo()
+    return
+  }
+
+  observer = new IntersectionObserver((entries) => {
+    if (entries.some(entry => entry.isIntersecting)) {
+      observer?.disconnect()
+      observer = null
+      loadTwikoo()
+    }
+  }, { rootMargin: '300px 0px' })
+
+  observer.observe(el)
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
 })
 </script>
 
