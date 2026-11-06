@@ -23,9 +23,13 @@
 ### 2. Twikoo 滚动懒加载
 
 - `components/shared/Guestbook.vue` 增加 `IntersectionObserver`：
-  - 元素距视口 300px 内时，才 `import('twikoo')` 并初始化
-  - 初始化前不请求 Twikoo 的 JS chunk，也不请求评论接口
+  - 元素距视口 300px 内时，才注入 Twikoo 脚本并初始化
+  - 初始化前不请求 Twikoo 脚本，也不请求评论接口
   - 浏览器不支持 IntersectionObserver 时，回退为挂载即加载
+- **官方 UMD 自托管**：使用 `public/vendor/twikoo.all.min.js`（v1.7.24），
+  滚动触发时动态插入 `<script>`，加载后调用 `window.twikoo.init(...)`。
+  不再走 `import('twikoo')` 打包 —— 打包版在线上出现过 Vue 2 渲染异常
+  （`getTagNamespace` 读到 undefined tag），官方 UMD 版正常。
 - **DOM 归属**：模板保留静态 `#twikoo-container`，Twikoo 用选择器
   `el: '#twikoo-container'` 挂载。加载占位是静态兄弟节点，只用原生 `hidden`
   属性切换，不用 `v-if`/响应式状态 —— 避免 Vue patch 到 Twikoo 接管后的节点
@@ -34,10 +38,6 @@
   线上慢网络下 hydration 可持续数十秒，过早初始化会与 Vue 的补丁过程竞争。
 - **确认渲染**：`await twikoo.init(...)` 之后轮询 `.twikoo` / `.tk-submit`，
   真正渲染后才隐藏「评论加载中…」；超时则显示「留言板加载失败，请刷新重试」。
-- **阻止预取**：Nuxt 默认会把页面内所有 dynamic import 以
-  `<link rel="prefetch">` 预取（由 vue-bundle-renderer 生成），Twikoo 的
-  ~1MB chunk 仍会在空闲时被下载。通过 `build:manifest` 钩子把 Twikoo 条目的
-  `prefetch` / `preload` 置为 `false`，保留运行时动态 import。
 - 组件卸载时 `observer.disconnect()`；`started` 标志防止重复初始化
 
 ## 非目标

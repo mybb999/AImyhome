@@ -53,6 +53,27 @@ const loadingEl = ref<HTMLElement | null>(null)
 
 let observer: IntersectionObserver | null = null
 let started = false
+let scriptPromise: Promise<TwikooApi> | null = null
+
+// 官方 UMD 构建自托管：只在滚动到留言板时才注入 <script>，
+// 不参与 Vite 打包（打包版在线上出现过 Vue 2 渲染异常）。
+function loadTwikooScript(): Promise<TwikooApi> {
+  if (window.twikoo) return Promise.resolve(window.twikoo)
+  if (scriptPromise) return scriptPromise
+
+  scriptPromise = new Promise<TwikooApi>((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = '/vendor/twikoo.all.min.js'
+    script.async = true
+    script.onload = () => {
+      if (window.twikoo) resolve(window.twikoo)
+      else reject(new Error('Twikoo 脚本未注册 window.twikoo'))
+    }
+    script.onerror = () => reject(new Error('Twikoo 脚本加载失败'))
+    document.head.appendChild(script)
+  })
+  return scriptPromise
+}
 
 // 等 Twikoo 真的把 DOM 渲染出来，再隐藏「加载中」
 function waitForRender(timeout = 3000): Promise<boolean> {
@@ -79,7 +100,7 @@ async function loadTwikoo(attempt = 0) {
   if (loadingEl.value) loadingEl.value.hidden = false
 
   try {
-    const twikoo = await import('twikoo')
+    const twikoo = await loadTwikooScript()
 
     // 开发环境：浏览器直连 Vercel（需设备开 VPN）
     // 生产环境：走 Nuxt 服务端代理（Vercel 内部互通，无需 VPN）
@@ -91,7 +112,7 @@ async function loadTwikoo(attempt = 0) {
       ? 'https://message-board-pi-pearl.vercel.app'
       : `${window.location.origin}/api/twikoo`
 
-    await twikoo.default({
+    await twikoo.init({
       envId,
       el: '#twikoo-container',
       lang: 'zh-CN',

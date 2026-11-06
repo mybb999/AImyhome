@@ -86,20 +86,6 @@ export default defineNuxtConfig({
     ],
   },
 
-  // Twikoo 是滚动懒加载的 ~1MB 动态 chunk，但 Nuxt 默认会把页面里
-  // 所有 dynamic import 以 <link rel="prefetch"> 预取 —— 等于没省流量。
-  // 在 manifest 里关掉它的 prefetch/preload 提示，保留运行时 import。
-  hooks: {
-    'build:manifest'(manifest) {
-      for (const entry of Object.values(manifest) as Array<{ name?: string, prefetch?: boolean, preload?: boolean }>) {
-        if (entry.name?.includes('twikoo')) {
-          entry.prefetch = false
-          entry.preload = false
-        }
-      }
-    },
-  },
-
   // CSS
   css: ['~/assets/css/main.css'],
 })
