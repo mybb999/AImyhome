@@ -13,10 +13,16 @@
       </span>
     </div>
 
-    <!-- Twikoo 初始化时会替换/移动挂载节点，所以这里只让 Vue 管理一个空壳，
-         评论节点和占位节点都用原生 DOM 创建，避免和 Vue 的虚拟 DOM 打架 -->
-    <div ref="mountEl" class="card">
+    <div class="card">
       <ClientOnly>
+        <div
+          ref="loadingEl"
+          class="flex items-center justify-center py-12 min-h-[160px] text-on-surface-variant text-body-md"
+          hidden
+        >
+          评论加载中...
+        </div>
+        <div id="twikoo-container" />
         <template #fallback>
           <div class="flex items-center justify-center py-12 min-h-[160px] text-on-surface-variant text-body-md">
             评论加载中...
@@ -43,30 +49,34 @@ import { onBeforeUnmount, ref } from 'vue'
  */
 
 const sectionEl = ref<HTMLElement | null>(null)
-const mountEl = ref<HTMLElement | null>(null)
+const loadingEl = ref<HTMLElement | null>(null)
 
 let observer: IntersectionObserver | null = null
-let placeholderEl: HTMLDivElement | null = null
 let started = false
 
-function setPlaceholder(text: string) {
-  if (!mountEl.value) return
-  if (!placeholderEl) {
-    placeholderEl = document.createElement('div')
-    placeholderEl.className = 'flex items-center justify-center py-12 min-h-[160px] text-on-surface-variant text-body-md'
-    mountEl.value.appendChild(placeholderEl)
-  }
-  placeholderEl.textContent = text
+// 等 Twikoo 真的把 DOM 渲染出来，再隐藏「加载中」
+function waitForRender(timeout = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const start = Date.now()
+    const check = () => {
+      if (document.querySelector('.twikoo, .tk-submit')) return resolve(true)
+      if (Date.now() - start > timeout) return resolve(false)
+      setTimeout(check, 100)
+    }
+    check()
+  })
 }
 
-async function loadTwikoo() {
-  if (started || !mountEl.value) return
+async function loadTwikoo(attempt = 0) {
+  if (started) return
+  const container = document.getElementById('twikoo-container')
+  if (!container || !container.isConnected) {
+    // ClientOnly 还没把容器渲染出来时重试，避免静默不加载
+    if (attempt < 10) setTimeout(() => loadTwikoo(attempt + 1), 200)
+    return
+  }
   started = true
-  setPlaceholder('评论加载中...')
-
-  const container = document.createElement('div')
-  container.id = 'twikoo-container'
-  mountEl.value.appendChild(container)
+  if (loadingEl.value) loadingEl.value.hidden = false
 
   try {
     const twikoo = await import('twikoo')
@@ -83,16 +93,18 @@ async function loadTwikoo() {
 
     await twikoo.default({
       envId,
-      el: container,
+      el: '#twikoo-container',
       lang: 'zh-CN',
       path: window.location.pathname,
     })
-    // Twikoo 已接管：移除占位，后续不再由 Vue 触碰这块 DOM
-    placeholderEl?.remove()
-    placeholderEl = null
+    // 线上慢网络下 init 可能静默结束；确认渲染后再收起占位
+    if (!(await waitForRender())) throw new Error('Twikoo 未渲染内容')
+    if (loadingEl.value) loadingEl.value.hidden = true
   } catch (err) {
-    container.remove()
-    setPlaceholder('留言板加载失败，请刷新重试')
+    if (loadingEl.value) {
+      loadingEl.value.hidden = false
+      loadingEl.value.textContent = '留言板加载失败，请刷新重试'
+    }
     console.error('Twikoo 加载失败:', err)
   }
 }
