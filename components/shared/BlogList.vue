@@ -38,7 +38,7 @@
         :post="post"
         :style="{ animationDelay: `${idx * 80}ms` }"
         class="animate-slide-up"
-        @click="openPost(post.slug)"
+        @click="rememberOrigin"
       />
     </TransitionGroup>
 
@@ -80,15 +80,14 @@ const { save, take } = useBlogOrigin()
 
 const visibleCount = ref(props.initialCount ?? props.posts.length)
 
-// 点卡片进文章前，记下来源页面、滚动位置和当前已渲染的卡片数，
-// 供文章页的「返回博客列表」还原。
-function openPost(slug: string) {
+// 点文章链接前，记下来源页面、滚动位置和当前已渲染的卡片数，
+// 供新标签页里文章页的「返回博客列表」还原。
+function rememberOrigin() {
   save({
     path: route.path,
     scrollY: window.scrollY,
     visibleCount: visibleCount.value,
   })
-  navigateTo(`/blog/${slug}`)
 }
 
 // Nuxt 路由切换结束后会把页面滚回顶部，会覆盖这里刚恢复的位置；

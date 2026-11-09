@@ -3,7 +3,8 @@
  *
  * 点击文章卡片时记录来源页面、滚动位置和已渲染的卡片数量；
  * 文章页的「返回博客列表」据此回到原处，列表页负责恢复数量与滚动位置。
- * 用 sessionStorage 保存，刷新文章页后返回仍然有效。
+ * 用 localStorage 保存，新标签页里的文章页也能读到来源；
+ * 记录 10 分钟后自动失效，避免很久以后误跳。
  */
 export interface BlogOrigin {
   /** 来源页面路径，如 `/blog` 或 `/blog/collection/vue` */
@@ -25,7 +26,7 @@ export function useBlogOrigin() {
   function save(origin: Omit<BlogOrigin, 'savedAt'>) {
     if (typeof window === 'undefined') return
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...origin, savedAt: Date.now() }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...origin, savedAt: Date.now() }))
     } catch {
       // 隐私模式 / 配额已满：记录失败不影响正常跳转
     }
@@ -35,11 +36,11 @@ export function useBlogOrigin() {
   function peek(): BlogOrigin | null {
     if (typeof window === 'undefined') return null
     try {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
+      const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return null
       const parsed = JSON.parse(raw) as BlogOrigin
       if (!parsed?.path || Date.now() - (parsed.savedAt || 0) > MAX_AGE) {
-        sessionStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(STORAGE_KEY)
         return null
       }
       return parsed
@@ -59,7 +60,7 @@ export function useBlogOrigin() {
   function clear() {
     if (typeof window === 'undefined') return
     try {
-      sessionStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(STORAGE_KEY)
     } catch {
       // ignore
     }

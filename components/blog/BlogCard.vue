@@ -1,9 +1,8 @@
 <template>
   <article
-    class="card group cursor-pointer
+    class="card group relative cursor-pointer
            hover:border-brand-accent/30 transition-all duration-300
            hover:translate-y-[-2px]"
-    @click="$emit('click')"
   >
     <div class="space-y-3">
       <!-- Meta row: collection + date + reading time -->
@@ -11,7 +10,7 @@
         <NuxtLink
           v-if="post.collection"
           :to="`/blog/collection/${post.collection}`"
-          class="chip-accent text-label-md hover:bg-brand-accent/20 transition-colors"
+          class="chip-accent relative z-10 text-label-md hover:bg-brand-accent/20 transition-colors"
           @click.stop
         >
           {{ post.collectionIcon }} {{ post.collectionName }}
@@ -32,7 +31,15 @@
 
       <!-- Title -->
       <h2 class="text-headline-md text-on-surface group-hover:text-brand-accent transition-colors duration-200">
-        {{ post.title }}
+        <NuxtLink
+          :to="`/blog/${post.slug}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="after:absolute after:inset-0 after:content-['']"
+          @click="$emit('click')"
+        >
+          {{ post.title }}
+        </NuxtLink>
       </h2>
 
       <!-- Description -->
