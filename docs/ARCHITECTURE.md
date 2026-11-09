@@ -49,7 +49,7 @@ AImyhome/
 │   │   └── ChatMessage.vue        # 单条消息气泡（Markdown 渲染）
 │   └── shared/                # 共用组件
 │       ├── BlogList.vue           # 文章列表（含骨架屏/空状态/动画）
-│       ├── Guestbook.vue          # Giscus 留言板
+│       ├── Guestbook.vue          # Twikoo 留言板（懒加载）
 │       └── ResumeButton.vue       # PDF 下载按钮
 │
 ├── server/
@@ -88,7 +88,7 @@ Markdown 文件 ──→ server/api/blog.ts ──→ BlogList (首页列表)
                     │
                     └──→ BlogContent (详情页渲染)
 
-Giscus <── GitHub Discussions API (免数据库留言)
+Twikoo（浏览器）──→ /api/twikoo ──→ 自建 tkserver（127.0.0.1:8080，LokiJS）
 
 浏览器 (ChatPanel.vue) ──→ server/api/agent.post.ts ──→ 智谱 GLM API
         ▲                                              │

@@ -42,10 +42,10 @@
 ### 技术栈
 - **框架**: Nuxt 3 (Vue 3 + SSR)
 - **样式**: Tailwind CSS (Midnight Slate 主题)
-- **字体**: Geist (Google Fonts)
+- **字体**: Geist（自托管 woff2）
 - **动效**: Vue Transition + Tailwind 动画
 - **数据**: Nuxt server/api + Markdown
-- **留言**: Giscus (GitHub Discussions)
+- **留言**: Twikoo（自建 2.0.17，Docker）
 - **生产部署**: 腾讯云 `106.55.76.235`（PM2 + Nginx + Certbot）
 - **预览/回滚**: Vercel（保留部署，不承载正式 DNS）
 
