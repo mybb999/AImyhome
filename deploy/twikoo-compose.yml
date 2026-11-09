@@ -1,0 +1,19 @@
+services:
+  twikoo:
+    image: imaegoo/twikoo:latest
+    container_name: twikoo
+    restart: unless-stopped
+    environment:
+      # 单 IP 每分钟最大请求次数
+      TWIKOO_THROTTLE: "250"
+      # LokiJS 数据文件目录（容器内）
+      TWIKOO_DATA: /app/data
+      TZ: Asia/Shanghai
+    volumes:
+      - twikoo-data:/app/data
+    ports:
+      # 只监听本机，不直接暴露公网
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  twikoo-data:

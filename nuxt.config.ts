@@ -27,9 +27,8 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=20260601' },
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap' },
+        // Geist 自托管：Google Fonts 在国内不可达，会阻塞首屏
+        { rel: 'stylesheet', href: '/fonts/geist.css' },
       ],
     },
     pageTransition: {
@@ -68,6 +67,7 @@ export default defineNuxtConfig({
     // 想找回时:git revert 这个提交再排查,别在这里死磕。
     prerender: {
       routes: [],
+      crawlLinks: false,
     },
     // /api/agent 是 LLM 流式接口:回答要 15~30s,Vercel 免费版默认 10s 会掐死函数,提到上限 60s
     // (这个版本 nitro 只认 vercel.functions,不认 routeRules.maxDuration —— 已查过 nitro 源码)

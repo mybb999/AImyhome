@@ -6,13 +6,13 @@
 |------|------|------|
 | 框架 | Nuxt 3 | Vue 3 全栈框架，支持 SSR |
 | 样式 | Tailwind CSS | 原子化 CSS，Midnight Slate 主题定制 |
-| 字体 | Geist | Google Fonts，现代化几何字体 |
+| 字体 | Geist | 自托管 woff2（public/fonts），不依赖 Google Fonts |
 | 动效 | Vue Transition + Tailwind | 0kb 额外体积，纯原生 |
 | 内容 | @nuxt/content | Markdown 博客渲染 + 代码高亮 |
-| 留言 | Giscus | GitHub Discussions API，零数据库 |
+| 留言 | Twikoo | 自建 Docker（2.0.17，LokiJS），同源 /api/twikoo 代理 |
 | AI Agent | 智谱 GLM-4-Flash | LLM 对话，OpenAI 兼容 API |
 | Markdown 渲染 | markdown-it | 轻量 Markdown → HTML（Agent 回复） |
-| 部署 | Vercel | Serverless，全球 CDN |
+| 部署 | 腾讯云 + Nginx | `106.55.76.235`，PM2；Vercel 保留预览/回滚 |
 | 语言 | TypeScript | 全项目类型安全 |
 
 ## 项目结构
@@ -23,7 +23,7 @@ AImyhome/
 ├── nuxt.config.ts             # Nuxt 配置
 ├── tailwind.config.ts         # Tailwind + Midnight Slate Token
 ├── CLAUDE.md                  # 项目开发指引
-├── vercel.json                # Vercel 部署配置
+├── vercel.json                # Vercel 预览/回滚配置
 │
 ├── layouts/
 │   └── default.vue            # 全局布局（PC左固定+右滚动 / Mobile垂直）
@@ -140,4 +140,4 @@ Giscus <── GitHub Discussions API (免数据库留言)
 | 流式渲染 | SSE (Server-Sent Events) | Nuxt/Nitro 原生支持 ReadableStream |
 | API Key 安全 | 仅服务端 | `.env` 存储，前端不可见 |
 | 工具调用 | 暂无 | 纯文本对话，后续可扩展 |
-| 超时限制 | Vercel 10s | 长回答可能截断，后续可升级 Pro（60s） |
+| 超时限制 | Node 服务无 60s 限制 | 已迁到腾讯云 node-server，Vercel maxDuration 不再适用 |

@@ -46,7 +46,18 @@
 - **动效**: Vue Transition + Tailwind 动画
 - **数据**: Nuxt server/api + Markdown
 - **留言**: Giscus (GitHub Discussions)
-- **部署**: Vercel
+- **生产部署**: 腾讯云 `106.55.76.235`（PM2 + Nginx + Certbot）
+- **预览/回滚**: Vercel（保留部署，不承载正式 DNS）
+
+### 生产部署
+
+- 本地构建并部署：`bash deploy/deploy-blog.sh`
+- 服务器目录：`/opt/ai-myhome-blog`，PM2 进程 `blog`，监听 `127.0.0.1:3000`
+- Nginx：`ai-myhome.space` / `www` 反代到 3000；`/_nuxt`、`/fonts`、`/vendor` 静态长缓存；`/api/agent` 关闭缓冲（SSE）
+- Twikoo：Docker `imaegoo/twikoo`（2.0.17）监听 `127.0.0.1:8080`，博客 `/api/twikoo` 代理过去
+- 环境变量：服务器 `.env`（600）+ `deploy/ecosystem.config.cjs`
+- 架构/Agent 服务同机：`AGENT_BASE_URL=http://127.0.0.1:8000`
+- 回滚：Vercel 部署仍在，把 `ai-myhome.space` 的 DNS 改回 `cname.vercel-dns.com`
 
 ### 验证步骤
 1. `npm run dev` → `http://localhost:3000`

@@ -1,7 +1,8 @@
 /**
  * Twikoo 代理共享逻辑
  */
-const TWIKOO_BACKEND = 'https://message-board-pi-pearl.vercel.app'
+// 生产环境指向本机 Twikoo 容器；本地开发可用 .env 覆盖
+const TWIKOO_BACKEND = process.env.TWIKOO_BACKEND || 'https://message-board-pi-pearl.vercel.app'
 
 export async function proxyTwikoo(event: any, subPath: string) {
   const targetUrl = `${TWIKOO_BACKEND}${subPath}`

@@ -10,6 +10,8 @@
           v-if="avatarSrc"
           :src="avatarSrc"
           alt="Lucas"
+          width="448"
+          height="448"
           class="w-full h-full object-cover object-center"
         />
         <span
@@ -60,13 +62,13 @@
 
     <!-- Footer note -->
     <p class="text-label-md text-on-surface-variant/60">
-      Made with Nuxt 3 · Hosted on Vercel
+      Made with Nuxt 3 · Hosted on Tencent Cloud
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
 // 将真实头像图片放入 public/ 目录后，修改此路径即可
-const avatarSrc = ref("/avatar.png"); // 例: 'c.jpg'
+const avatarSrc = ref("/avatar.webp"); // 448×448 WebP，原图 2.9MB 太大
 const initials = "L";
 </script>

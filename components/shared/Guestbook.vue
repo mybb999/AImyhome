@@ -102,15 +102,9 @@ async function loadTwikoo(attempt = 0) {
   try {
     const twikoo = await loadTwikooScript()
 
-    // 开发环境：浏览器直连 Vercel（需设备开 VPN）
-    // 生产环境：走 Nuxt 服务端代理（Vercel 内部互通，无需 VPN）
-    const isDev = window.location.hostname === 'localhost'
-      || window.location.hostname.startsWith('192.168.')
-      || window.location.hostname.startsWith('10.')
-      || window.location.hostname.startsWith('172.')
-    const envId = isDev
-      ? 'https://message-board-pi-pearl.vercel.app'
-      : `${window.location.origin}/api/twikoo`
+    // 统一走同源代理，后端地址由服务端 TWIKOO_BACKEND 决定
+    // （生产是本机 Twikoo 容器；本地开发可在 .env 覆盖）
+    const envId = `${window.location.origin}/api/twikoo`
 
     await twikoo.init({
       envId,
