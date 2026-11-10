@@ -1,12 +1,12 @@
 <template>
-  <div class="card flex h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] relative overflow-hidden">
+  <div class="card flex flex-col lg:flex-row h-[calc(100dvh-8.5rem)] lg:h-[calc(100vh-10rem)] relative overflow-hidden">
     <!-- ── 会话侧栏(M3.2):登录用户有会话列表;游客显示登录表单 ── -->
     <!-- 注意:aside 本身不滚 —— 滚动只发生在中间的会话列表区,
          这样顶部「新会话」和底部用户区(用户卡/退出)始终固定 -->
     <!-- -ml-5 + w-[228px]:.card 自带 20px 内边距,会把侧栏整体右推,
          视觉上「左边距 30px、右边距 10px」不居中。负外边距抵消这 20px、
          宽度补回来 —— 右边框线和聊天区纹丝不动,内容真正居中 -->
-    <aside class="w-[228px] shrink-0 -ml-5 border-r border-brand-border flex flex-col">
+    <aside class="w-full max-h-[42%] lg:max-h-none lg:w-[228px] shrink-0 lg:-ml-5 border-b lg:border-b-0 lg:border-r border-brand-border flex flex-col">
       <!-- 登录态就绪前(首屏 JS 未加载完)不渲染内容:否则会先闪一下登录表单 -->
       <div v-if="!authReady" class="flex-1" />
       <template v-else-if="authUser">
@@ -143,22 +143,22 @@
     </aside>
 
     <!-- ── 右侧对话区 ── -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 min-h-0">
       <!-- ── Header ── -->
-      <div class="flex items-center justify-between pb-4 border-b border-brand-border shrink-0 px-4 pt-4">
-        <div>
-          <h1 class="text-headline-lg text-on-surface flex items-center gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-3 lg:pb-4 border-b border-brand-border shrink-0 px-3 lg:px-4 pt-3 lg:pt-4">
+        <div class="min-w-0">
+          <h1 class="text-headline-md lg:text-headline-lg text-on-surface flex items-center gap-2 lg:gap-3 whitespace-nowrap">
             🤖 聊天工具
           </h1>
-          <p class="mt-1 text-body-md text-on-surface-variant">
+          <p class="hidden lg:block mt-1 text-body-md text-on-surface-variant">
             AI 驱动 · 智能助手
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <!-- Model selector -->
           <div v-if="models.length > 1" class="relative">
             <button
-              class="chip cursor-pointer hover:bg-surface-high/50 transition-colors"
+              class="chip cursor-pointer hover:bg-surface-high/50 transition-colors whitespace-nowrap"
               :disabled="isStreaming"
               :title="isStreaming ? '回复生成中，暂不可切换' : '切换模型'"
               @click="showModelMenu = !showModelMenu"
@@ -276,7 +276,7 @@
             你好！我是 熊仔 的 AI 助手
           </p>
           <p class="mt-2 text-body-md text-on-surface-variant max-w-md">
-            由智谱 GLM-4.7-Flash / 豆包 Seed-2.1-Lite 双模型驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
+            由豆包 / 智谱 / DeepSeek 多模型驱动。我可以聊 Node 全栈、前端开发、Vue、React、TypeScript、可视化等技术话题，有什么想了解的？
           </p>
         </div>
 

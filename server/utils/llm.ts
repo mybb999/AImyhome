@@ -28,6 +28,7 @@ const DEFAULT_ZHIPU_BASE = 'https://open.bigmodel.cn/api/paas/v4'
 const DEFAULT_ZHIPU_MODEL = 'glm-4.7-flash'
 const DOUBAO_BASE = 'https://ark.cn-beijing.volces.com/api/v3'
 const DOUBAO_MODEL = 'doubao-seed-2-1-lite-260915'
+const DEEPSEEK_BASE = 'https://api.deepseek.com'
 
 /** 注册表。数组顺序 = 默认优先级(客户端不传 model 时,取第一个配了 key 的) */
 export const LLM_PROVIDERS: LLMProvider[] = [
@@ -46,6 +47,22 @@ export const LLM_PROVIDERS: LLMProvider[] = [
     baseURL: process.env.LLM_BASE_URL || DEFAULT_ZHIPU_BASE,
     model: process.env.LLM_MODEL || DEFAULT_ZHIPU_MODEL,
     apiKey: process.env.LLM_API_KEY,
+  },
+  {
+    id: 'deepseek-flash',
+    name: 'DeepSeek-V4.1-Flash',
+    description: '便宜 · 1M 上下文',
+    baseURL: DEEPSEEK_BASE,
+    model: 'deepseek-flash',
+    apiKey: process.env.DEEPSEEK_API_KEY,
+  },
+  {
+    id: 'deepseek-pro',
+    name: 'DeepSeek-V4-Pro',
+    description: '强推理 · 1M 上下文',
+    baseURL: DEEPSEEK_BASE,
+    model: 'deepseek-v4-pro',
+    apiKey: process.env.DEEPSEEK_API_KEY,
   },
 ]
 
