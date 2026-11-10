@@ -589,6 +589,7 @@ async function handleAuthSubmit() {
     }
     authError.value = ''
     await refreshConversations()
+    await loadModels()
   } catch (err: any) {
     authError.value = err.message || '操作失败,请重试'
   } finally {
@@ -642,6 +643,8 @@ function handleLogout() {
   if (inputEl.value) {
     inputEl.value.style.height = 'auto'
   }
+  // 重新拉模型列表:退出后收费模型对游客隐藏
+  loadModels()
 }
 
 // ── 会话管理 ──
@@ -1198,6 +1201,32 @@ function selectModel(id: string) {
   localStorage.setItem('agent-model', id)
 }
 
+// 普通模型列表:带上登录态 —— 收费模型(DeepSeek)只对白名单账号返回,
+// 游客/其他账号由服务端过滤掉。登录/退出后都要重新拉一次。
+async function loadModels() {
+  try {
+    const res = await fetch('/api/agent/models', {
+      headers: authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {},
+    })
+    if (!res.ok) return
+    const data = await res.json()
+    models.value = data.models || []
+    // 上次选的是角色卡模型(dzmm:xxx)就直接恢复 —— 它不在普通模型列表里;
+    // 名字要等 cardModels 拉回来才有,期间顶栏显示「角色卡模型」。
+    // 未登录不恢复角色卡(否则退出后仍选中一个发不出去的模型)
+    const saved = localStorage.getItem('agent-model')
+    if (saved?.startsWith('dzmm:') && authUser.value) {
+      selectedModel.value = saved
+    } else {
+      selectedModel.value = models.value.some(m => m.id === saved)
+        ? saved!
+        : (models.value[0]?.id || '')
+    }
+  } catch {
+    // keep selector hidden — chat still works with server default
+  }
+}
+
 // 角色卡模型列表:只有 lucas 会拿到 200;其他人 403 → 列表为空,不显示级联
 async function fetchCardModels() {
   if (!authToken.value) return
@@ -1338,25 +1367,7 @@ onMounted(async () => {
   }
 
   // Load available models (selector hidden when list has <2 entries)
-  try {
-    const res = await fetch('/api/agent/models')
-    if (res.ok) {
-      const data = await res.json()
-      models.value = data.models || []
-      // 上次选的是角色卡模型(dzmm:xxx)就直接恢复 —— 它不在普通模型列表里;
-      // 名字要等 cardModels 拉回来才有,期间顶栏显示「角色卡模型」
-      const saved = localStorage.getItem('agent-model')
-      if (saved?.startsWith('dzmm:')) {
-        selectedModel.value = saved
-      } else {
-        selectedModel.value = models.value.some(m => m.id === saved)
-          ? saved!
-          : (models.value[0]?.id || '')
-      }
-    }
-  } catch {
-    // keep selector hidden — chat still works with server default
-  }
+  await loadModels()
 })
 
 // 卸载时解绑滚动监听,防止内存泄漏

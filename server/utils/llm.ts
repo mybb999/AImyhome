@@ -22,6 +22,8 @@ export interface LLMProvider {
   model: string
   /** API key;没配 = undefined = 该模型不可用 */
   apiKey?: string
+  /** 收费模型:只对白名单账号展示(真正的拦截在 Agent 服务,这里只管展示) */
+  paid?: boolean
 }
 
 const DEFAULT_ZHIPU_BASE = 'https://open.bigmodel.cn/api/paas/v4'
@@ -55,6 +57,7 @@ export const LLM_PROVIDERS: LLMProvider[] = [
     baseURL: DEEPSEEK_BASE,
     model: 'deepseek-flash',
     apiKey: process.env.DEEPSEEK_API_KEY,
+    paid: true,
   },
   {
     id: 'deepseek-pro',
@@ -63,6 +66,7 @@ export const LLM_PROVIDERS: LLMProvider[] = [
     baseURL: DEEPSEEK_BASE,
     model: 'deepseek-v4-pro',
     apiKey: process.env.DEEPSEEK_API_KEY,
+    paid: true,
   },
 ]
 
