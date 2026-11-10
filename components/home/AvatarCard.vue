@@ -10,8 +10,8 @@
           v-if="avatarSrc"
           :src="avatarSrc"
           alt="Lucas"
-          width="448"
-          height="448"
+          width="326"
+          height="326"
           class="w-full h-full object-cover object-center"
         />
         <span
@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 // 将真实头像图片放入 public/ 目录后，修改此路径即可
-const avatarSrc = ref("/avatar.webp"); // 448×448 WebP，原图 2.9MB 太大
+// ?v= 用于破 Nginx 的 30 天静态缓存，换头像时改这个版本号
+const avatarSrc = ref("/avatar.webp?v=20261111"); // 326×326 WebP
 const initials = "L";
 </script>
